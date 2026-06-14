@@ -16,19 +16,21 @@ class HUD:
 
         self.font = pygame.font.Font(FUENTE_HUD, 32)
 
-    def draw(self, screen, lives, max_lives, jacket_count, start_time):
+    def draw(self, screen, lives, max_lives, jacket_count, tiempo_restante):
         for i in range(max_lives):
             if i < lives:
                 screen.blit(self.heart_blue, (10 + i * 95, 10))
             else:
                 screen.blit(self.heart_black, (10 + i * 95, 10))
 
-        elapsed_time = (pygame.time.get_ticks() - start_time) // 1000
-        minutes = elapsed_time // 60
-        seconds = elapsed_time % 60
+        segundos = max(0, tiempo_restante // 1000)
+        minutes = segundos // 60
+        seconds = segundos % 60
+
+        color_timer = (255, 0, 0) if segundos <= 10 else (0, 0, 0)
 
         timer_text = self.font.render(
-            f"{minutes:02}:{seconds:02}", True, (0, 0, 0)
+            f"{minutes:02}:{seconds:02}", True, color_timer
         )
         timer_rect = timer_text.get_rect(
             center=(screen.get_width() // 2, 50)

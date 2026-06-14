@@ -2,6 +2,7 @@ import pygame
 
 NIVELES = [
     {
+        "tiempo": 120,
         "mapa": [
             "####################",
             "#                  #",
@@ -26,6 +27,7 @@ class Level:
         self.punto_a = (0, 0)
         self.punto_b = (0, 0)
         self.pos_enemigos = []
+        self.tiempo_limite = NIVELES[numero]["tiempo"]
         self._cargar(NIVELES[numero]["mapa"])
 
     def _cargar(self, mapa):

@@ -41,6 +41,7 @@ for pos in nivel.pos_enemigos:
 
 hud = HUD()
 inicio_tiempo = pygame.time.get_ticks()
+tiempo_restante = nivel.tiempo_limite * 1000
 ganaste = False
 game_over = False
 tiempo_invulnerable = 0
@@ -69,7 +70,7 @@ def dibujar_cable():
 
 
 def reiniciar_partida():
-    global ganaste, game_over, tiempo_invulnerable, inicio_tiempo
+    global ganaste, game_over, tiempo_invulnerable, inicio_tiempo, tiempo_restante
     jugador.vidas = jugador.vidas_max
     jugador.puntaje = 0
     jugador.tiene_cable = True
@@ -84,6 +85,7 @@ def reiniciar_partida():
     game_over = False
     tiempo_invulnerable = 0
     inicio_tiempo = pygame.time.get_ticks()
+    tiempo_restante = nivel.tiempo_limite * 1000
 
 
 while True:
@@ -99,6 +101,13 @@ while True:
                 reiniciar_partida()
 
     if not ganaste and not game_over:
+        dt = clock.get_time()
+        tiempo_restante -= dt
+
+        if tiempo_restante <= 0:
+            tiempo_restante = 0
+            game_over = True
+
         teclas = pygame.key.get_pressed()
         jugador.leer_input(teclas)
         jugador.update(nivel.plataformas, ANCHO, ALTO)
@@ -147,7 +156,7 @@ while True:
         pygame.draw.rect(pantalla, NEGRO, jugador.forma)
         ancho_texto = FUENTE_PEQ.size("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio")[0]
         dibujar_texto("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio", FUENTE_PEQ, BLANCO, (ANCHO // 2 - ancho_texto // 2, ALTO - 35))
-        hud.draw(pantalla, jugador.vidas, jugador.vidas_max, 0, inicio_tiempo)
+        hud.draw(pantalla, jugador.vidas, jugador.vidas_max, 0, tiempo_restante)
 
     pygame.display.flip()
     clock.tick(FPS)
