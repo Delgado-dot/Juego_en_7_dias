@@ -1,37 +1,70 @@
 import pygame
 
+tamaño_mapa = 60
+
 NIVELES = [
     {
-        "tiempo": 120,
+        "tiempo": 180,
         "mapa": [
             "####################",
+            "#        R         #",
+            "#                  #",
+            "#    ########      #",
             "#                  #",
             "#                  #",
             "#    ####          #",
             "#                  #",
-            "#          ####    #",
-            "#       E          #",
-            "#  ####       E    #",
-            "#A             R   #",
+            "#  E      J        #",
+            "#         ###      #",
+            "#                  #",
+            "#    C      ####   #",
+            "#         ###      #",
+            "#    E             #",
+            "#  ####            #",
+            "#                  #",
+            "#        ####      #",
+            "#                  #",
+            "#   E              #",
+            "#       ####       #",
+            "#                  #",
+            "#  ####            #",
+            "#                  #",
+            "#A                 #",
             "####################"
         ],
     },
     {
-        "tiempo": 90,
+        "tiempo": 150,
         "mapa": [
             "####################",
+            "#        R         #",
             "#                  #",
-            "#              E   #",
+            "#  E    ######     #",
+            "#                  #",
+            "#       E          #",
             "#  ######          #",
+            "#       J          #",
+            "#    E    E        #",
+            "#       ####       #",
             "#                  #",
-            "#    E    ####     #",
+            "#  C        E      #",
+            "#######            #",
+            "#        ####      #",
+            "#    E             #",
+            "#  ####            #",
             "#                  #",
-            "####       E  ###  #",
-            "#A             R   #",
+            "#           ####   #",
+            "######             #",
+            "#  E               #",
+            "#       ####       #",
+            "#                  #",
+            "#  ####            #",
+            "#A                 #",
             "####################"
         ],
     },
 ]
+
 
 class Level:
     def __init__(self, ancho, alto, numero=0):
@@ -41,25 +74,34 @@ class Level:
         self.plataformas = []
         self.punto_a = (0, 0)
         self.punto_b = (0, 0)
-        self.pos_enemigos = []
+        self.pos_trampas = []
+        self.checkpoints = []
+        self.pos_chaqueta = None
+        self.pos_chaqueta_original = None
         self.tiempo_limite = NIVELES[numero]["tiempo"]
-        self._cargar(NIVELES[numero]["mapa"])
+        self.mapa_data = NIVELES[numero]["mapa"]
+        self.filas = len(self.mapa_data)
+        self.columnas = len(self.mapa_data[0])
+        self.tile_w = ancho // self.columnas
+        self.tile_h = tamaño_mapa
+        self.alto_total = self.filas * self.tile_h
+        self._cargar()
 
-    def _cargar(self, mapa):
-        filas = len(mapa)
-        columnas = len(mapa[0])
-        tile_w = self.ancho // columnas
-        tile_h = self.alto // filas
-
-        for fila_idx, fila in enumerate(mapa):
+    def _cargar(self):
+        for fila_idx, fila in enumerate(self.mapa_data):
             for col_idx, tile in enumerate(fila):
-                x = col_idx * tile_w
-                y = fila_idx * tile_h
+                x = col_idx * self.tile_w
+                y = fila_idx * self.tile_h
                 if tile == "#":
-                    self.plataformas.append(pygame.Rect(x, y, tile_w, tile_h))
+                    self.plataformas.append(pygame.Rect(x, y, self.tile_w, self.tile_h))
                 elif tile == "A":
-                    self.punto_a = (x + tile_w // 2, y + tile_h // 2)
+                    self.punto_a = (x + self.tile_w // 2, y + self.tile_h // 2)
                 elif tile == "R":
-                    self.punto_b = (x + tile_w // 2, y + tile_h // 2)
+                    self.punto_b = (x + self.tile_w // 2, y + self.tile_h // 2)
                 elif tile == "E":
-                    self.pos_enemigos.append((x + tile_w // 2, y + tile_h // 2))
+                    self.pos_trampas.append((x + self.tile_w // 2, y + self.tile_h // 2))
+                elif tile == "C":
+                    self.checkpoints.append((x + self.tile_w // 2, y + self.tile_h // 2))
+                elif tile == "J":
+                    self.pos_chaqueta = (x + self.tile_w // 2, y + self.tile_h // 2)
+                    self.pos_chaqueta_original = self.pos_chaqueta

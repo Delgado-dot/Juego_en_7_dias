@@ -37,7 +37,7 @@ class Menu:
         else:
             self.pantalla.fill((10, 10, 30))
 
-        titulo = self.fuente_titulo.render("Cable Runner", True, (0, 200, 255))
+        titulo = self.fuente_titulo.render("..............", True, (0, 200, 255))
         rect = titulo.get_rect(center=(self.ancho // 2, self.alto // 4))
         self.pantalla.blit(titulo, rect)
 

@@ -1,281 +1,180 @@
-"""
-Entidades.py
-Archivo de entidades del juego. Aquí viven todas las clases de los objetos
-que existen en el mundo:
-
-  - EntidadJuego  → clase base (lo que todas comparten: forma, animación, draw)
-  - Personaje     → el jugador (movimiento, salto, gravedad, cable)
-  - Enemigo       → el triángulo que patrulla y puede cortar el cable
-
-Para que el juego arranque solo hace falta:
-    from Entidades import Personaje, Enemigo
-"""
-
 import math
 import pygame
 
-
-# ===========================================================================
-# CLASE BASE
-# ===========================================================================
 class EntidadJuego:
-    """
-    Clase base para cualquier entidad dibujable del juego
-    (jugador, enemigos, sabios). Centraliza lo que todas comparten:
-
-      - tile y hitbox (`forma`)
-      - sprite actual (`image`) y orientación (`flip`)
-      - el contador de animación por frames (`anim_idx` / `last_anim`)
-      - un `draw` básico (las subclases lo sobreescriben cuando
-        necesitan efectos extra, como el aura o el parpadeo del jugador,
-        o un anclaje distinto del sprite respecto a `forma`).
-    """
-
-    def __init__(self, tile):
-        self.tile = tile
-        self.flip = False
-
-        # estado genérico de animación por frames
-        self.anim_idx = 0
-        self.last_anim = pygame.time.get_ticks()
-
-        # cada subclase define su propio Rect e imagen inicial,
-        # porque el spawn y el tamaño del sprite cambian bastante entre ellas
+    def __init__(self, tamano):
+        self.tamano = tamano
+        self.voltear = False
+        self.indice_anim = 0
+        self.ultimo_anim = pygame.time.get_ticks()
         self.forma = None
-        self.image = None
+        self.imagen = None
 
-    def _avanzar_indice(self, total_frames, delay):
-        """
-        Avanza self.anim_idx si ya pasó 'delay' ms desde el último cambio.
-        Devuelve True si avanzó, para que el llamador actualice self.image.
-        """
+    def avanzar_anim(self, total_fotogramas, retraso):
         ahora = pygame.time.get_ticks()
-        if ahora - self.last_anim >= delay:
-            self.last_anim = ahora
-            self.anim_idx = (self.anim_idx + 1) % total_frames
+        if ahora - self.ultimo_anim >= retraso:
+            self.ultimo_anim = ahora
+            self.indice_anim = (self.indice_anim + 1) % total_fotogramas
             return True
         return False
 
-    def draw(self, screen, camx=0, camy=0):
-        if self.image is None:
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if self.imagen is None:
             return
-        img = pygame.transform.flip(self.image, self.flip, False)
-        screen.blit(img, (self.forma.x - camx, self.forma.y - camy))
+        img = pygame.transform.flip(self.imagen, self.voltear, False)
+        pantalla.blit(img, (self.forma.x - cam_x, self.forma.y - cam_y))
 
 
-# ===========================================================================
-# PERSONAJE (jugador)
-# ===========================================================================
 class Personaje(EntidadJuego):
-    """
-    Jugador controlable. Hereda de EntidadJuego lo visual (forma, draw).
-    La parte lógica vive aquí:
-      - movimiento horizontal (A/D o flechas)
-      - salto (W, flecha arriba o espacio)
-      - gravedad y colisión con plataformas
-      - cable: lo tiene, lo puede perder, y lo recupera en el punto A
-    """
-
     def __init__(self, x, y, tamano=40):
         super().__init__(tamano)
-        # Rect de colisión. Como aún no hay sprite, uso un rect directamente.
         self.forma = pygame.Rect(x, y, tamano, tamano)
-
-        # --- Constantes de movimiento ---
         self.velocidad = 5
         self.gravedad = 0.6
         self.fuerza_salto = -18
-
-        # --- Estado de movimiento ---
         self.vel_x = 0
         self.vel_y = 0
         self.en_suelo = False
-
-        # --- Estado del cable ---
         self.tiene_cable = True
-        self.distancia_recuperar_cable = 35  # radio del punto A para recuperarlo
-
-        # --- Estado de partida ---
+        self.radio_cable = 35
         self.vidas = 3
         self.vidas_max = 3
         self.puntaje = 0
-        self.puntos_por_cable = 100  # cuánto suma reconectar el cable
+        self.puntos_cable = 100
+        self.chaquetas = 0
 
-    # ------------------------------------------------------------------
-    # Movimiento
-    # ------------------------------------------------------------------
-    def leer_input(self, teclas):
-        """Lee el teclado y actualiza vel_x / vel_y antes del update."""
+    def leer_teclas(self, teclas):
         self.vel_x = 0
-
         if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
             self.vel_x = -self.velocidad
-            self.flip = True
+            self.voltear = True
         if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
             self.vel_x = self.velocidad
-            self.flip = False
-
-        if (
-            teclas[pygame.K_w]
-            or teclas[pygame.K_UP]
-            or teclas[pygame.K_SPACE]
-        ) and self.en_suelo:
+            self.voltear = False
+        if (teclas[pygame.K_w] or teclas[pygame.K_UP] or teclas[pygame.K_SPACE]) and self.en_suelo:
             self.vel_y = self.fuerza_salto
             self.en_suelo = False
 
     def aplicar_gravedad(self):
-        self.vel_y += self.gravedad
-        self.forma.y += self.vel_y
+        if self.chaquetas > 0 and self.vel_y > 0:
+            gravedad_real = self.gravedad * 0.3
+        else:
+            gravedad_real = self.gravedad
+        self.vel_y += gravedad_real
+        self.forma.y += int(self.vel_y)
 
-    def mover_horizontal(self, plataformas):
+    def mover_x(self, plataformas):
         self.forma.x += self.vel_x
-        for plataforma in plataformas:
-            if self.forma.colliderect(plataforma):
+        for p in plataformas:
+            if self.forma.colliderect(p):
                 if self.vel_x > 0:
-                    self.forma.right = plataforma.left
+                    self.forma.right = p.left
                 elif self.vel_x < 0:
-                    self.forma.left = plataforma.right
+                    self.forma.left = p.right
 
-    def resolver_colision_vertical(self, plataformas):
-        """Colisión vertical separada de mover_horizontal para que el jugador
-        no se 'atasque' en las esquinas. Marca en_suelo si toca algo arriba."""
-        for plataforma in plataformas:
-            if self.forma.colliderect(plataforma):
+    def colision_y(self, plataformas):
+        for p in plataformas:
+            if self.forma.colliderect(p):
                 if self.vel_y > 0:
-                    self.forma.bottom = plataforma.top
+                    self.forma.bottom = p.top
                     self.vel_y = 0
                     self.en_suelo = True
                 elif self.vel_y < 0:
-                    self.forma.top = plataforma.bottom
+                    self.forma.top = p.bottom
                     self.vel_y = 0
 
-    def limitar_a_pantalla(self, ancho, alto):
+    def limitar_x(self, ancho):
         if self.forma.left < 0:
             self.forma.left = 0
         if self.forma.right > ancho:
             self.forma.right = ancho
-        if self.forma.top < 0:
-            self.forma.top = 0
-            self.vel_y = 0
-        if self.forma.bottom > alto:
-            self.forma.bottom = alto
+
+    def actualizar(self, plataformas, ancho, alto_total):
+        self.en_suelo = False
+        self.mover_x(plataformas)
+        self.aplicar_gravedad()
+        self.colision_y(plataformas)
+        self.limitar_x(ancho)
+        if self.forma.bottom > alto_total:
+            self.forma.bottom = alto_total
             self.vel_y = 0
             self.en_suelo = True
 
-    def update(self, plataformas, ancho, alto):
-        """Update completo de un frame. Asume que ya llamaron leer_input()."""
-        self.en_suelo = False  # se vuelve a poner True si toca suelo
-
-        self.mover_horizontal(plataformas)
-        self.aplicar_gravedad()
-        self.resolver_colision_vertical(plataformas)
-        self.limitar_a_pantalla(ancho, alto)
-
-    # ------------------------------------------------------------------
-    # Cable
-    # ------------------------------------------------------------------
-    def distancia_a_punto(self, punto):
+    def distancia(self, punto):
         cx, cy = self.forma.center
         return ((cx - punto[0]) ** 2 + (cy - punto[1]) ** 2) ** 0.5
 
-    def intentar_recuperar_cable(self, punto_a):
-        """Si vuelve al punto A, recupera el cable automáticamente.
-        No suma puntos (eso pasa al llegar al punto B)."""
-        if self.distancia_a_punto(punto_a) < self.distancia_recuperar_cable:
+    def recuperar_cable(self, punto):
+        if self.distancia(punto) < self.radio_cable:
             self.tiene_cable = True
 
     def cortar_cable(self):
         self.tiene_cable = False
 
     def perder_vida(self):
-        """Lo llama el main cuando el jugador toca al enemigo.
-        Devuelve True si todavía le quedan vidas, False si murió."""
         self.vidas -= 1
         self.tiene_cable = False
+        if self.chaquetas > 0:
+            self.chaquetas -= 1
         return self.vidas > 0
 
-    def reiniciar_posicion(self, x, y):
-        """Manda al jugador de vuelta al punto A y le quita el cable."""
+    def reiniciar_pos(self, x, y):
         self.forma.x = x
         self.forma.y = y
         self.vel_x = 0
         self.vel_y = 0
         self.tiene_cable = False
 
-    def llego_a_meta(self, punto_b, radio=35):
-        """Devuelve True si está sobre el punto B Y todavía tiene cable."""
+    def llego_meta(self, punto_b, radio=35):
         if not self.tiene_cable:
             return False
-        return self.distancia_a_punto(punto_b) < radio
+        return self.distancia(punto_b) < radio
 
 
-# ===========================================================================
-# ENEMIGO (triángulo que patrulla)
-# ===========================================================================
-class Enemigo(EntidadJuego):
-    """
-    Enemigo que se mueve horizontalmente entre min_x y max_x.
-    Si el cable del jugador pasa a menos de 'radio_corte' de su posición,
-    el método corta_cable() devuelve True para que el main lo corte.
-    """
-
-    def __init__(self, x, y, tamano=35, velocidad=3, min_x=180, max_x=560):
+class Trampa(EntidadJuego):
+    def __init__(self, x, y, tamano=35, velocidad=3, min_x=0, max_x=100):
         super().__init__(tamano)
-        # Trabajamos con (x, y) directamente, no con un Rect,
-        # porque el enemigo se dibuja como triángulo.
-        self.x = x
-        self.y = y
-
-        # --- Estado propio ---
-        self.tamano = tamano
+        self.x = float(x)
+        self.y = float(y)
         self.velocidad = velocidad
         self.min_x = min_x
         self.max_x = max_x
-
-        # Qué tan cerca del cable tiene que pasar para cortarlo
         self.radio_corte = 25
 
-    # ------------------------------------------------------------------
-    # Movimiento
-    # ------------------------------------------------------------------
-    def update(self):
+    def mover(self, plataformas):
         self.x += self.velocidad
         if self.x <= self.min_x or self.x >= self.max_x:
             self.velocidad *= -1
-            # flip visual según el sentido
-            self.flip = self.velocidad < 0
+            self.voltear = self.velocidad < 0
+        hitbox = pygame.Rect(
+            self.x - self.tamano, int(self.y) - self.tamano,
+            self.tamano * 2, self.tamano * 2
+        )
+        for p in plataformas:
+            if hitbox.colliderect(p):
+                if self.velocidad > 0:
+                    self.x = p.left - self.tamano
+                else:
+                    self.x = p.right + self.tamano
+                self.velocidad *= -1
 
-    # ------------------------------------------------------------------
-    # Colisión con el cable
-    # ------------------------------------------------------------------
-    def _distancia_punto_a_segmento(self, px, py, ax, ay, bx, by):
-        """Distancia mínima entre el punto (px,py) y el segmento (a)-(b)."""
+    def corta_cable(self, origen, pos_jugador):
+        ax, ay = origen
+        bx, by = pos_jugador
         dx = bx - ax
         dy = by - ay
         if dx == 0 and dy == 0:
-            return math.hypot(px - ax, py - ay)
-        t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
+            return math.hypot(self.x - ax, self.y - ay) < self.radio_corte
+        t = ((self.x - ax) * dx + (self.y - ay) * dy) / (dx * dx + dy * dy)
         t = max(0.0, min(1.0, t))
         cx = ax + t * dx
         cy = ay + t * dy
-        return math.hypot(px - cx, py - cy)
+        return math.hypot(self.x - cx, self.y - cy) < self.radio_corte
 
-    def corta_cable(self, punto_a, jugador_pos):
-        """Devuelve True si el cable queda dentro de radio_corte del enemigo."""
-        ax, ay = punto_a
-        bx, by = jugador_pos
-        d = self._distancia_punto_a_segmento(self.x, self.y, ax, ay, bx, by)
-        return d < self.radio_corte
-
-    # ------------------------------------------------------------------
-    # Dibujo
-    # ------------------------------------------------------------------
-    def draw(self, screen, camx=0, camy=0):
-        # Triángulo isósceles con la punta hacia arriba
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
         puntos = [
-            (self.x,                self.y - self.tamano),
-            (self.x - self.tamano,  self.y + self.tamano),
-            (self.x + self.tamano,  self.y + self.tamano),
+            (self.x - cam_x, int(self.y) - self.tamano - cam_y),
+            (self.x - self.tamano - cam_x, int(self.y) + self.tamano - cam_y),
+            (self.x + self.tamano - cam_x, int(self.y) + self.tamano - cam_y),
         ]
-        color = (160, 0, 200)  # MORADO
-        pygame.draw.polygon(screen, color, puntos)
+        pygame.draw.polygon(pantalla, (160, 0, 200), puntos)
