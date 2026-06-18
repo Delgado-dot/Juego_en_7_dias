@@ -262,7 +262,7 @@ while True:
         if game_over:
             pygame.display.flip()
             pygame.mixer.music.stop()
-            go = GameOver(pantalla, ANCHO, ALTO, jugador.puntaje)
+            go = GameOver(pantalla, ANCHO, ALTO, jugador.puntaje, nivel_idx + 1, jugador.chaquetas)
             resultado = go.ejecutar()
             if resultado == "reintentar":
                 reiniciar_nivel()
@@ -276,7 +276,7 @@ while True:
         elif victoria_final:
             pygame.display.flip()
             pygame.mixer.music.stop()
-            vic = Victoria(pantalla, ANCHO, ALTO, jugador.puntaje)
+            vic = Victoria(pantalla, ANCHO, ALTO, jugador.puntaje, nivel_idx + 1, jugador.chaquetas)
             vic.ejecutar()
             jugando = False
         else:
