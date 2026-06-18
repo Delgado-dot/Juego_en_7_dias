@@ -1,0 +1,180 @@
+import math
+import pygame
+
+class EntidadJuego:
+    def __init__(self, tamano):
+        self.tamano = tamano
+        self.voltear = False
+        self.indice_anim = 0
+        self.ultimo_anim = pygame.time.get_ticks()
+        self.forma = None
+        self.imagen = None
+
+    def avanzar_anim(self, total_fotogramas, retraso):
+        ahora = pygame.time.get_ticks()
+        if ahora - self.ultimo_anim >= retraso:
+            self.ultimo_anim = ahora
+            self.indice_anim = (self.indice_anim + 1) % total_fotogramas
+            return True
+        return False
+
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if self.imagen is None:
+            return
+        img = pygame.transform.flip(self.imagen, self.voltear, False)
+        pantalla.blit(img, (self.forma.x - cam_x, self.forma.y - cam_y))
+
+
+class Personaje(EntidadJuego):
+    def __init__(self, x, y, tamano=40):
+        super().__init__(tamano)
+        self.forma = pygame.Rect(x, y, tamano, tamano)
+        self.velocidad = 5
+        self.gravedad = 0.6
+        self.fuerza_salto = -18
+        self.vel_x = 0
+        self.vel_y = 0
+        self.en_suelo = False
+        self.tiene_cable = True
+        self.radio_cable = 35
+        self.vidas = 3
+        self.vidas_max = 3
+        self.puntaje = 0
+        self.puntos_cable = 100
+        self.chaquetas = 0
+
+    def leer_teclas(self, teclas):
+        self.vel_x = 0
+        if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
+            self.vel_x = -self.velocidad
+            self.voltear = True
+        if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
+            self.vel_x = self.velocidad
+            self.voltear = False
+        if (teclas[pygame.K_w] or teclas[pygame.K_UP] or teclas[pygame.K_SPACE]) and self.en_suelo:
+            self.vel_y = self.fuerza_salto
+            self.en_suelo = False
+
+    def aplicar_gravedad(self):
+        if self.chaquetas > 0 and self.vel_y > 0:
+            gravedad_real = self.gravedad * 0.3
+        else:
+            gravedad_real = self.gravedad
+        self.vel_y += gravedad_real
+        self.forma.y += int(self.vel_y)
+
+    def mover_x(self, plataformas):
+        self.forma.x += self.vel_x
+        for p in plataformas:
+            if self.forma.colliderect(p):
+                if self.vel_x > 0:
+                    self.forma.right = p.left
+                elif self.vel_x < 0:
+                    self.forma.left = p.right
+
+    def colision_y(self, plataformas):
+        for p in plataformas:
+            if self.forma.colliderect(p):
+                if self.vel_y > 0:
+                    self.forma.bottom = p.top
+                    self.vel_y = 0
+                    self.en_suelo = True
+                elif self.vel_y < 0:
+                    self.forma.top = p.bottom
+                    self.vel_y = 0
+
+    def limitar_x(self, ancho):
+        if self.forma.left < 0:
+            self.forma.left = 0
+        if self.forma.right > ancho:
+            self.forma.right = ancho
+
+    def actualizar(self, plataformas, ancho, alto_total):
+        self.en_suelo = False
+        self.mover_x(plataformas)
+        self.aplicar_gravedad()
+        self.colision_y(plataformas)
+        self.limitar_x(ancho)
+        if self.forma.bottom > alto_total:
+            self.forma.bottom = alto_total
+            self.vel_y = 0
+            self.en_suelo = True
+
+    def distancia(self, punto):
+        cx, cy = self.forma.center
+        return ((cx - punto[0]) ** 2 + (cy - punto[1]) ** 2) ** 0.5
+
+    def recuperar_cable(self, punto):
+        if self.distancia(punto) < self.radio_cable:
+            self.tiene_cable = True
+
+    def cortar_cable(self):
+        self.tiene_cable = False
+
+    def perder_vida(self):
+        self.vidas -= 1
+        self.tiene_cable = False
+        if self.chaquetas > 0:
+            self.chaquetas -= 1
+        return self.vidas > 0
+
+    def reiniciar_pos(self, x, y):
+        self.forma.x = x
+        self.forma.y = y
+        self.vel_x = 0
+        self.vel_y = 0
+        self.tiene_cable = False
+
+    def llego_meta(self, punto_b, radio=35):
+        if not self.tiene_cable:
+            return False
+        return self.distancia(punto_b) < radio
+
+
+class Trampa(EntidadJuego):
+    def __init__(self, x, y, tamano=35, velocidad=3, min_x=0, max_x=100):
+        super().__init__(tamano)
+        self.x = float(x)
+        self.y = float(y)
+        self.velocidad = velocidad
+        self.min_x = min_x
+        self.max_x = max_x
+        self.radio_corte = 25
+
+    def mover(self, plataformas):
+        self.x += self.velocidad
+        if self.x <= self.min_x or self.x >= self.max_x:
+            self.velocidad *= -1
+            self.voltear = self.velocidad < 0
+        hitbox = pygame.Rect(
+            self.x - self.tamano, int(self.y) - self.tamano,
+            self.tamano * 2, self.tamano * 2
+        )
+        for p in plataformas:
+            if hitbox.colliderect(p):
+                if self.velocidad > 0:
+                    self.x = p.left - self.tamano
+                else:
+                    self.x = p.right + self.tamano
+                self.velocidad *= -1
+
+    def corta_cable(self, origen, pos_jugador):
+        ax, ay = origen
+        bx, by = pos_jugador
+        dx = bx - ax
+        dy = by - ay
+        if dx == 0 and dy == 0:
+            return math.hypot(self.x - ax, self.y - ay) < self.radio_corte
+        t = ((self.x - ax) * dx + (self.y - ay) * dy) / (dx * dx + dy * dy)
+        t = max(0.0, min(1.0, t))
+        cx = ax + t * dx
+        cy = ay + t * dy
+        return math.hypot(self.x - cx, self.y - cy) < self.radio_corte
+
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        puntos = [
+            (self.x - cam_x, int(self.y) - self.tamano - cam_y),
+            (self.x - self.tamano - cam_x, int(self.y) + self.tamano - cam_y),
+            (self.x + self.tamano - cam_x, int(self.y) + self.tamano - cam_y),
+        ]
+        pygame.draw.polygon(pantalla, (160, 0, 200), puntos)
