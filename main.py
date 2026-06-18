@@ -1,12 +1,12 @@
 import sys
 import pygame
-from Entidades import *
-from game.UI.hud import *
+from Entidades import Personaje, Trampa
+from game.UI.hud import HUD
 from game.level import Level, NIVELES
-from game.UI.menu import *
-from game.UI.game_over import *
-from game.UI.victoria import *
-from config import *
+from game.UI.menu import Menu
+from game.UI.game_over import GameOver
+from game.UI.victoria import Victoria
+from config import  *
 
 pygame.init()
 pygame.mixer.init()
@@ -20,11 +20,11 @@ pygame.display.set_caption(TITULO)
 
 reloj = pygame.time.Clock()
 
-fuente = pygame.font.SysFont(FUENTE_HUD, 60)
-fuente_peq = pygame.font.SysFont(FUENTE_HUD, 25)
+fuente = pygame.font.SysFont("Arial", 60)
+fuente_peq = pygame.font.SysFont("Arial", 25)
 
 try:
-    fondo_juego = pygame.image.load(SPRITE_FONDO_1).convert()
+    fondo_juego = pygame.image.load(SPRITE_FONDO).convert()
     fondo_juego = pygame.transform.scale(fondo_juego, (ANCHO, ALTO))
 except:
     fondo_juego = None
@@ -36,43 +36,21 @@ try:
 except:
     pass
 
-tam_jugador = int(min(ANCHO, ALTO) * 0.03)
+tam_jugador = 64
 
 
 def crear_nivel(idx):
-    global nivel, trampas, tiempo_restante
-    global nivel_completado, punto_cable_actual
-    global fondo_juego
-
+    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual
     nivel = Level(ANCHO, ALTO, idx)
-
-    # Cargar fondo del nivel
-    try:
-        fondo_juego = pygame.image.load(
-            nivel.ruta_fondo
-        ).convert()
-
-        fondo_juego = pygame.transform.scale(
-            fondo_juego,
-            (ANCHO, ALTO)
-        )
-    except:
-        fondo_juego = None
-
     trampas = []
-
     for pos in nivel.pos_trampas:
-        trampas.append(
-            Trampa(
-                x=pos[0],
-                y=pos[1],
-                tamano=int(min(ANCHO, ALTO) * 0.04),
-                velocidad=max(3, ANCHO // 500),
-                min_x=pos[0] - int(ANCHO * 0.20),
-                max_x=pos[0] + int(ANCHO * 0.20)
-            )
-        )
-
+        trampas.append(Trampa(
+            x=pos[0], y=pos[1],
+            tamano=int(min(ANCHO, ALTO) * 0.04),
+            velocidad=max(3, ANCHO // 500),
+            min_x=pos[0] - int(ANCHO * 0.20),
+            max_x=pos[0] + int(ANCHO * 0.20)
+        ))
     tiempo_restante = nivel.tiempo_limite * 1000
     nivel_completado = False
     punto_cable_actual = nivel.punto_a
@@ -164,10 +142,10 @@ def dibujar_cable(cam_y):
     ax, ay = punto_cable_actual[0], punto_cable_actual[1] - cam_y
     jx, jy = jugador.forma.centerx, jugador.forma.centery - cam_y
     if jugador.tiene_cable:
-        pygame.draw.line(pantalla, NEGRO, (ax, ay), (jx, jy), 5)
+        pygame.draw.line(pantalla, BLANCO, (ax, ay), (jx, jy), 5)
     else:
-        w = fuente_peq.size("Cable cortado: vuelve al rack")[0]
-        texto("Cable cortado: vuelve al rack", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
+        w = fuente_peq.size("Cable cortado: vuelve al punto C o A")[0]
+        texto("Cable cortado: vuelve al punto C o A", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
 
 
 nivel_idx = 0
@@ -181,7 +159,108 @@ tiempo_sin_daño = 0
 punto_cable_actual = None
 
 crear_nivel(0)
-jugador = Personaje(nivel.punto_a[0], nivel.punto_a[1] - tam_jugador, tamano=tam_jugador)
+
+jugador = Personaje(
+    nivel.punto_a[0],
+    nivel.punto_a[1] - tam_jugador,
+    tamano=tam_jugador
+)
+
+sprite_sheet = pygame.image.load(
+    "assets/sprites/jugador/idle.png"
+).convert_alpha()
+
+sprite_sheet_run = pygame.image.load(
+    "assets/sprites/jugador/run.png"
+).convert_alpha()
+
+sprite_sheet_jump = pygame.image.load(
+    "assets/sprites/jugador/jump.png"
+).convert_alpha()
+
+frame_ancho = sprite_sheet.get_width() // 5
+frame_alto = sprite_sheet.get_height() // 5
+frames = []
+
+for fila in range(5):
+    for columna in range(5):
+
+        frame = sprite_sheet.subsurface(
+            pygame.Rect(
+                columna * frame_ancho,
+                fila * frame_alto,
+                frame_ancho,
+                frame_alto
+            )
+        )
+
+        frame = pygame.transform.scale(
+            frame,
+            (tam_jugador, tam_jugador)
+        )
+
+        frames.append(frame)
+        
+frames_run = []
+
+for fila in range(5):
+    for columna in range(5):
+
+        frame = sprite_sheet_run.subsurface(
+            pygame.Rect(
+                columna * frame_ancho,
+                fila * frame_alto,
+                frame_ancho,
+                frame_alto
+            )
+        )
+
+        frame = pygame.transform.scale(
+            frame,
+            (tam_jugador, tam_jugador)
+        )
+
+        frames_run.append(frame)
+        
+frames_jump = []
+
+frame_ancho_jump = sprite_sheet_jump.get_width() // 5
+frame_alto_jump = sprite_sheet_jump.get_height() // 5
+
+contador = 0
+
+for fila in range(5):
+    for columna in range(5):
+
+        if contador >= 23:
+            break
+
+        frame = sprite_sheet_jump.subsurface(
+            pygame.Rect(
+                columna * frame_ancho_jump,
+                fila * frame_alto_jump,
+                frame_ancho_jump,
+                frame_alto_jump
+            )
+        )
+
+        frame = pygame.transform.scale(
+            frame,
+            (tam_jugador, tam_jugador)
+        )
+
+        frames_jump.append(frame)
+
+        contador += 1
+        
+frame_idle = 0
+frame_run = 0
+frame_jump = 0
+ultimo_frame = pygame.time.get_ticks()
+velocidad_animacion = 80
+
+jugador.imagen = frames[0]
+
 hud = HUD()
 
 while True:
@@ -217,6 +296,41 @@ while True:
                     jugando = False
 
         cam_x, cam_y = camara()
+        ahora = pygame.time.get_ticks()
+
+        if ahora - ultimo_frame > velocidad_animacion:
+
+            ultimo_frame = ahora
+
+            if not jugador.en_suelo:
+
+                if frame_jump < len(frames_jump) - 1:
+                    frame_jump += 1
+
+                jugador.imagen = frames_jump[frame_jump]
+
+            elif jugador.vel_x != 0:
+
+                frame_jump = 0
+
+                frame_run += 1
+
+                if frame_run >= len(frames_run):
+                    frame_run = 0
+
+                jugador.imagen = frames_run[frame_run]
+
+
+            else:
+
+                frame_jump = 0
+
+                frame_idle += 1
+
+                if frame_idle >= len(frames):
+                    frame_idle = 0
+
+                jugador.imagen = frames[frame_idle]
 
         if not game_over and not victoria_final:
             dt = reloj.get_time()
@@ -226,9 +340,11 @@ while True:
                 game_over = True
 
             teclas = pygame.key.get_pressed()
+            estaba_en_suelo = jugador.en_suelo
             jugador.leer_teclas(teclas)
             jugador.actualizar(nivel.plataformas, ANCHO, nivel.alto_total)
 
+                
             for t in trampas:
                 t.mover(nivel.plataformas)
 
@@ -300,12 +416,23 @@ while True:
         else:
             dibujar_cable(cam_y)
             dibujar_nivel(cam_y)
+
             for t in trampas:
                 t.dibujar(pantalla, cam_x, cam_y)
-            jr = pygame.Rect(jugador.forma.x, jugador.forma.y - cam_y, jugador.forma.w, jugador.forma.h)
-            pygame.draw.rect(pantalla, NEGRO, jr)
-            w = fuente_peq.size("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio")[0]
-            texto("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio", fuente_peq, (255, 255, 255), (ANCHO // 2 - w // 2, ALTO - 35))
+
+            jugador.dibujar(pantalla, cam_x, cam_y)
+
+            w = fuente_peq.size(
+                "Mover: A/D o Flechas | Saltar: W, Arriba o Espacio"
+            )[0]
+
+            texto(
+                "Mover: A/D o Flechas | Saltar: W, Arriba o Espacio",
+                fuente_peq,
+                (200, 200, 200),
+                (ANCHO // 2 - w // 2, ALTO - 35)
+            )
+            
             hud.draw(pantalla, jugador.vidas, jugador.vidas_max, jugador.chaquetas, tiempo_restante)
 
         pygame.display.flip()

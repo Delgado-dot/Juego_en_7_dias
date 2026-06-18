@@ -28,10 +28,7 @@ SPRITE_JUGADOR = os.path.join(RUTA_SPRITES, "jugador.png")
 
 SPRITE_ENEMIGO = os.path.join(RUTA_SPRITES, "enemigo.png")
 
-SPRITE_FONDO_1 = os.path.join(RUTA_IMAGENES, "fondo1.png")
-sprite_fondo_2 = os.path.join(RUTA_IMAGENES, "fondo2.png")
-sprite_fondo_3 = os.path.join(RUTA_IMAGENES, "fondo3.png")
-
+SPRITE_FONDO = os.path.join(RUTA_IMAGENES,"HUD", "Fondo1.png")
 SPRITE_PLATAFORMA = os.path.join(RUTA_SPRITES, "plataforma.png")
 
 SPRITE_CORAZON_LLENO = os.path.join(RUTA_IMAGENES, "HUD", "dark blue heart pixel art.png")

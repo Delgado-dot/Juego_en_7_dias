@@ -6,11 +6,10 @@ tamaño_mapa = 60
 NIVELES = [
     {
     "tiempo": 120,
-    "fondo": SPRITE_FONDO_1,
     "mapa": [
         "####################",
         "#        R         #",
-        "#   #####   #####  #",
+        "#           #####  #",
         "#                  #",
         "#        #####     #",
         "#               C  #",
@@ -29,7 +28,6 @@ NIVELES = [
 },
 {
     "tiempo": 150,
-    "fondo": sprite_fondo_2,
     "mapa": [
         "####################",
         "#        R         #",
@@ -54,7 +52,6 @@ NIVELES = [
 },
 {
     "tiempo": 90,
-    "fondo": sprite_fondo_3,
     "mapa": [
         "####################",
         "#        R         #",
@@ -87,7 +84,6 @@ class Level:
         self.punto_b = (0, 0)
         self.pos_trampas = []
         self.checkpoints = []
-        self.ruta_fondo = NIVELES[numero]["fondo"]
         self.pos_chaqueta = None
         self.pos_chaqueta_original = None
         self.tiempo_limite = NIVELES[numero]["tiempo"]
