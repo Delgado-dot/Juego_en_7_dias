@@ -35,8 +35,17 @@ class Menu:
     def mostrar_ranking(self):
         try:
             puntajes = top_5_puntajes()
+            from db.database_manager import leer_csv, PERSONAJES_CSV
+            personajes = leer_csv(PERSONAJES_CSV)
         except:
             puntajes = []
+            personajes = []
+
+        def nombre_por_id(pid):
+            for p in personajes:
+                if p["id"] == str(pid):
+                    return p["nombre"]
+            return "???"
 
         esperando = True
         reloj = pygame.time.Clock()
@@ -54,15 +63,19 @@ class Menu:
                 self.pantalla.fill((10, 10, 30))
 
             titulo = self.fuente_titulo.render("TOP 5", True, (0, 200, 255))
-            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, 80)))
+            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, 60)))
 
             if puntajes:
-                y = 200
+                y = 160
                 for i, p in enumerate(puntajes):
-                    linea = f"{i+1}. {p.get('puntos', 0)} pts"
-                    t = self.fuente_menu.render(linea, True, (255, 255, 255))
+                    nombre = nombre_por_id(p.get("personaje_id", 0))
+                    pts = p.get("puntos", 0)
+                    nivel = p.get("nivel_id", "?")
+                    chaqueta = "Si" if p.get("chaqueta_equipada", "False") == "True" else "No"
+                    linea = f"{i+1}. {nombre} | {pts} pts | Niv {nivel} | Chaqueta: {chaqueta}"
+                    t = self.fuente_peq.render(linea, True, (255, 255, 255))
                     self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, y)))
-                    y += 70
+                    y += 60
             else:
                 vacio = self.fuente_menu.render("Sin puntajes aun", True, (150, 150, 150))
                 self.pantalla.blit(vacio, vacio.get_rect(center=(self.ancho // 2, self.alto // 2)))
