@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ANCHO_VENTANA = 0
 ALTO_VENTANA = 0
 FPS = 60
-TITULO = "--------------"
+TITULO = "Jumper rack"
 
 # Colores
 BLANCO = (255, 255, 255)
@@ -28,7 +28,9 @@ SPRITE_JUGADOR = os.path.join(RUTA_SPRITES, "jugador.png")
 
 SPRITE_ENEMIGO = os.path.join(RUTA_SPRITES, "enemigo.png")
 
-SPRITE_FONDO = os.path.join(RUTA_IMAGENES, "fondo.png")
+SPRITE_FONDO_1 = os.path.join(RUTA_IMAGENES, "fondo1.png")
+sprite_fondo_2 = os.path.join(RUTA_IMAGENES, "fondo2.png")
+sprite_fondo_3 = os.path.join(RUTA_IMAGENES, "fondo3.png")
 
 SPRITE_PLATAFORMA = os.path.join(RUTA_SPRITES, "plataforma.png")
 
@@ -39,11 +41,11 @@ FUENTE_HUD = os.path.join(RUTA_FUENTES, "PressStart2P-Regular.ttf")
 
 MUSICA_JUEGO = os.path.join(RUTA_SONIDOS, "musica_juego.mp3")
 MUSICA_MENU = os.path.join(RUTA_SONIDOS, "musica_menu.mp3")
-SONIDO_CABLE_CORTADO = os.path.join(RUTA_SONIDOS, "cable_cortado.wav")
-SONIDO_PERDER_VIDA = os.path.join(RUTA_SONIDOS, "perder_vida.wav")
-SONIDO_GANAR = os.path.join(RUTA_SONIDOS, "ganar.wav")
-SONIDO_RECOGER_ITEM = os.path.join(RUTA_SONIDOS, "recoger_item.wav")
-
+SONIDO_CABLE_CORTADO = os.path.join(RUTA_SONIDOS, "cable_cortado.mp3")
+SONIDO_PERDER_VIDA = os.path.join(RUTA_SONIDOS, "perder_vida.mp3")
+SONIDO_GANAR = os.path.join(RUTA_SONIDOS, "sonido_victoria.mp3")
+SONIDO_RECOGER_ITEM = os.path.join(RUTA_SONIDOS, "recoger_item.mp3")
+sonido_game_over = os.path.join(RUTA_SONIDOS, "musica_gameover.mp3")
 VELOCIDAD_JUGADOR = 5
 GRAVEDAD = 0.6
 FUERZA_SALTO = -18

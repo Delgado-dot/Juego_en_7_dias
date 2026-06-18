@@ -91,7 +91,7 @@ class Menu:
         else:
             self.pantalla.fill((10, 10, 30))
 
-        titulo = self.fuente_titulo.render("Cable Runner", True, (0, 200, 255))
+        titulo = self.fuente_titulo.render("Jumper Rack", True, (0, 200, 255))
         self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
 
         for i, op in enumerate(self.opciones):
