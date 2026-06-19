@@ -177,7 +177,7 @@ class Trampa(EntidadJuego):
         self.radio_corte = 25
 
         self.imagen = pygame.image.load(
-            "sierracutre.png"
+            "assets/images/HUD/sierracutre.png"
         ).convert_alpha()
 
         self.imagen = pygame.transform.scale(

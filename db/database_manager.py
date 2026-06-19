@@ -2,7 +2,7 @@ import csv
 import os
 from datetime import datetime
 
-DATA_DIR = "data"
+DATA_DIR = "db"
 
 JUGADORES_CSV = os.path.join(DATA_DIR, "jugador.csv")
 PERSONAJES_CSV = os.path.join(DATA_DIR, "personaje.csv")
