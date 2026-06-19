@@ -93,7 +93,7 @@ class Personaje(EntidadJuego):
         self.vel_y = 0
         self.en_suelo = False
         self.tiene_cable = True
-        self.radio_cable = 35
+        self.radio_cable = 50
         self.vidas = 3
         self.vidas_max = 3
         self.puntaje = 0
@@ -229,15 +229,14 @@ class Trampa(EntidadJuego):
         self.min_x = min_x
         self.max_x = max_x
         self.radio_corte = 25
-
-        self.imagen = pygame.image.load(
-            "assets/images/HUD/sierracutre.png"
-        ).convert_alpha()
-
-        self.imagen = pygame.transform.scale(
-            self.imagen,
-            (tamano * 2, tamano * 2)
-        )
+        try:
+            self.imagen = pygame.image.load(
+                "assets/images/sierracutre.png"
+                ).convert_alpha()
+            self.imagen = pygame.transform.scale(self.imagen,
+                                                 (tamano * 2, tamano * 2))
+        except:
+            self.imagen = None
 
     def mover(self, plataformas):
         self.x += self.velocidad
