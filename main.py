@@ -1,4 +1,5 @@
 import sys
+import math
 import pygame
 from Entidades import Personaje, Trampa
 from game.UI.hud import HUD
@@ -163,7 +164,9 @@ crear_nivel(0)
 jugador = Personaje(
     nivel.punto_a[0],
     nivel.punto_a[1] - tam_jugador,
-    tamano=tam_jugador
+    tamano=tam_jugador,
+    ancho_hitbox=40,
+    alto_hitbox=40
 )
 
 sprite_sheet = pygame.image.load(
@@ -365,11 +368,12 @@ while True:
 
             ahora = pygame.time.get_ticks()
             for t in trampas:
-                hitbox = pygame.Rect(
-                    t.x - t.tamano, int(t.y) - t.tamano,
-                    t.tamano * 2, t.tamano * 2
+                dist = math.hypot(
+                    jugador.forma.centerx - t.x,
+                    jugador.forma.centery - t.y
                 )
-                if jugador.forma.colliderect(hitbox) and ahora > tiempo_sin_daño:
+                radio_colision = t.tamano * 0.75
+                if dist < radio_colision and ahora > tiempo_sin_daño:
                     if not jugador.perder_vida():
                         game_over = True
                     else:

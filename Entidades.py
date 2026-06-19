@@ -39,6 +39,28 @@ class EntidadJuego:
 
 
 class Personaje(EntidadJuego):
+    @property
+    def hitbox_pies(self):
+        """Franja angosta en la base del cuerpo, usada para detectar
+        piso (cuando el personaje cae o está parado)."""
+        return pygame.Rect(
+            self.forma.left,
+            self.forma.bottom - self.alto_pies,
+            self.forma.width,
+            self.alto_pies
+        )
+
+    @property
+    def hitbox_cabeza(self):
+        """Franja angosta en la parte superior del cuerpo, usada para
+        detectar techo (cuando el personaje sube saltando)."""
+        return pygame.Rect(
+            self.forma.left,
+            self.forma.top,
+            self.forma.width,
+            self.alto_pies
+        )
+
     def comprobar_suelo(self, plataformas):
         self.en_suelo = False
 
@@ -54,9 +76,16 @@ class Personaje(EntidadJuego):
                 self.en_suelo = True
                 break
 
-    def __init__(self, x, y, tamano=40):
+    def __init__(self, x, y, tamano=40, ancho_hitbox=None, alto_hitbox=None, alto_pies=16):
         super().__init__(tamano)
-        self.forma = pygame.Rect(x, y, tamano, tamano)
+        # El hitbox (self.forma) puede tener un tamaño distinto al sprite
+        # que se dibuja (self.imagen). Si no se pasa ancho/alto, usa "tamano".
+        hb_w = ancho_hitbox if ancho_hitbox is not None else tamano
+        hb_h = alto_hitbox if alto_hitbox is not None else tamano
+        self.forma = pygame.Rect(x, y, hb_w, hb_h)
+        # Alto de la franja de "pies" usada para colisión con piso/techo.
+        # mover_x sigue usando self.forma (el cuerpo completo).
+        self.alto_pies = alto_pies
         self.velocidad = 5
         self.gravedad = 0.6
         self.fuerza_salto = -18
@@ -101,16 +130,19 @@ class Personaje(EntidadJuego):
                     self.forma.left = p.right
 
     def colision_y(self, plataformas):
-        for p in plataformas:
-            if self.forma.colliderect(p):
-
-            # Cayendo o ya apoyado
-                if self.vel_y >= 0:
+        if self.vel_y >= 0:
+            # Cayendo o ya apoyado: solo cuentan los pies tocando la plataforma.
+            pies = self.hitbox_pies
+            for p in plataformas:
+                if pies.colliderect(p):
                     self.forma.bottom = p.top
                     self.vel_y = 0
                     self.en_suelo = True
-
-                else:
+        else:
+            # Subiendo (salto): solo cuenta la cabeza golpeando un techo.
+            cabeza = self.hitbox_cabeza
+            for p in plataformas:
+                if cabeza.colliderect(p):
                     self.forma.top = p.bottom
                     self.vel_y = 0
 
@@ -163,6 +195,28 @@ class Personaje(EntidadJuego):
         if not self.tiene_cable:
             return False
         return self.distancia(punto_b) < radio
+
+    
+    AJUSTE_PIES = 14
+
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if self.imagen is None:
+            return
+
+        img = pygame.transform.flip(self.imagen, self.voltear, False)
+
+        
+        offset_x = (self.forma.width - self.tamano) // 2
+
+        sprite_y = self.forma.bottom - self.tamano + self.AJUSTE_PIES
+
+        pantalla.blit(
+            img,
+            (
+                self.forma.x - cam_x + offset_x,
+                sprite_y - cam_y
+            )
+        )
 
 
 class Trampa(EntidadJuego):
