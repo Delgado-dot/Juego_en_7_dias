@@ -1,6 +1,5 @@
 import pygame
 import sys
-print(sys.executable)
 import cv2
 from db.database_manager import *
 
