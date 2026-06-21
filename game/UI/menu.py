@@ -1,6 +1,9 @@
 import pygame
 import sys
-from db.database_manager import top_5_puntajes
+print(sys.executable)
+import cv2
+from db.database_manager import *
+
 
 class Menu:
     def __init__(self, pantalla, ancho, alto):
@@ -9,6 +12,54 @@ class Menu:
         self.alto = alto
         self.opcion = 0
         self.opciones = ["Jugar", "Ranking", "Salir"]
+        
+        try:
+            self.titulo_img = pygame.image.load(
+                "assets/images/HUD/Titulomenu.png"
+            ).convert_alpha()
+            self.titulo_img = pygame.transform.scale(
+                self.titulo_img,
+                (600, 300)
+            )
+
+            self.btn_jugar = pygame.image.load(
+                "assets/images/HUD/boton_jugar.png"
+            ).convert_alpha()
+            self.btn_jugar = pygame.transform.scale(
+                self.btn_jugar,
+                (450, 100)
+            )
+
+            self.btn_ranking = pygame.image.load(
+                "assets/images/HUD/boton_ranking.png"
+            ).convert_alpha()
+            self.btn_ranking = pygame.transform.scale(
+                self.btn_ranking,
+                (450, 100)
+            )
+
+            self.btn_salir = pygame.image.load(
+                "assets/images/HUD/boton_salir.png"
+            ).convert_alpha()
+            self.btn_salir = pygame.transform.scale(
+                self.btn_salir,
+                (450, 100)
+            )
+            
+            self.rect_jugar = self.btn_jugar.get_rect(
+                center=(self.ancho // 2, 450)
+            )
+
+            self.rect_ranking = self.btn_ranking.get_rect(
+                center=(self.ancho // 2, 550)
+            )   
+
+            self.rect_salir = self.btn_salir.get_rect(
+                center=(self.ancho // 2, 650)
+            )   
+            
+        except:
+            self.titulo_img = None
 
         try:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 60)
@@ -20,10 +71,42 @@ class Menu:
             self.fuente_peq = pygame.font.SysFont("Arial", 16)
 
         try:
-            self.fondo = pygame.image.load("assets/images/menu_fondo.png")
-            self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
-        except:
-            self.fondo = None
+            self.frames_video = []
+
+            video = cv2.VideoCapture(
+                "assets/images/HUD/menu_fondo.mp4"
+            )
+
+            while True:
+                ret, frame = video.read()
+
+                if not ret:
+                    break
+
+                frame = cv2.cvtColor(
+                    frame,
+                    cv2.COLOR_BGR2RGB
+                )
+
+                frame = cv2.resize(
+                    frame,
+                    (ancho, alto)
+                )
+
+                superficie = pygame.surfarray.make_surface(
+                    frame.swapaxes(0, 1)
+                )
+
+                self.frames_video.append(superficie)
+
+            video.release()
+
+            self.frame_actual = 0
+            self.direccion_video = 1
+
+        except Exception as e:
+            print(f"Error cargando video: {e}")
+            self.frames_video = []
 
         try:
             pygame.mixer.music.load("assets/sounds/musica_menu.mp3")
@@ -57,8 +140,21 @@ class Menu:
                 if evento.type == pygame.KEYDOWN:
                     esperando = False
 
-            if self.fondo:
-                self.pantalla.blit(self.fondo, (0, 0))
+            if self.frames_video:
+
+                self.pantalla.blit(
+                    self.frames_video[self.frame_actual],
+                    (0, 0)
+                )
+
+                self.frame_actual += self.direccion_video
+
+                if self.frame_actual >= len(self.frames_video) - 1:
+                    self.direccion_video = -1
+
+                elif self.frame_actual <= 0:
+                    self.direccion_video = 1
+
             else:
                 self.pantalla.fill((10, 10, 30))
 
@@ -86,22 +182,85 @@ class Menu:
             reloj.tick(60)
 
     def dibujar(self):
-        if self.fondo:
-            self.pantalla.blit(self.fondo, (0, 0))
+        
+        if self.frames_video:
+
+            self.pantalla.blit(
+                self.frames_video[self.frame_actual],
+                (0, 0)
+            )
+
+            self.frame_actual += self.direccion_video
+
+            if self.frame_actual >= len(self.frames_video) - 1:
+                self.direccion_video = -1
+
+            elif self.frame_actual <= 0:
+                self.direccion_video = 1
+
         else:
             self.pantalla.fill((10, 10, 30))
 
-        titulo = self.fuente_titulo.render("Jumper Rack", True, (0, 200, 255))
-        self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
+        if self.titulo_img:
+            x = (self.ancho - self.titulo_img.get_width()) // 2
+            self.pantalla.blit(self.titulo_img, (x, 50))
 
-        for i, op in enumerate(self.opciones):
-            color = (0, 255, 150) if i == self.opcion else (200, 200, 200)
-            prefijo = "> " if i == self.opcion else "  "
-            t = self.fuente_menu.render(prefijo + op, True, color)
-            self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, self.alto // 2 + i * 70)))
+            self.pantalla.blit(
+                self.btn_jugar,
+                self.rect_jugar.topleft
+            )
 
-        inst = self.fuente_peq.render("W/S mover   Enter elegir", True, (100, 100, 100))
-        self.pantalla.blit(inst, inst.get_rect(center=(self.ancho // 2, self.alto - 40)))
+            self.pantalla.blit(
+                self.btn_ranking,
+                self.rect_ranking.topleft
+            )
+
+            self.pantalla.blit(
+                self.btn_salir,
+                self.rect_salir.topleft
+            )
+
+            if self.opcion == 0:
+                pygame.draw.rect(
+                    self.pantalla,
+                    (0, 255, 240),
+                    self.rect_jugar,
+                    4,
+                    border_radius=10
+                )
+
+            elif self.opcion == 1:
+                pygame.draw.rect(
+                    self.pantalla,
+                    (0, 255, 240),
+                    self.rect_ranking,
+                    4,
+                    border_radius=10
+                )
+
+            elif self.opcion == 2:
+                pygame.draw.rect(
+                    self.pantalla,
+                    (255, 0, 128),
+                    self.rect_salir,
+                    4,
+                    border_radius=10
+                )
+
+        else:
+            titulo = self.fuente_titulo.render(
+                "Cable Runner",
+                True,
+                (0, 200, 255)
+            )
+
+            self.pantalla.blit(
+                titulo,
+                titulo.get_rect(
+                    center=(self.ancho // 2, self.alto // 4)
+            )
+        )
+
         pygame.display.flip()
 
     def ejecutar(self):
