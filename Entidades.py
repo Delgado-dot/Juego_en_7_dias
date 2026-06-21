@@ -1,6 +1,7 @@
 import math
 import pygame
 
+
 class EntidadJuego:
     def __init__(self, tamano):
         self.tamano = tamano
@@ -23,26 +24,23 @@ class EntidadJuego:
             return
 
         img = pygame.transform.flip(self.imagen, self.voltear, False)
-        
-        
-        # Posición en Y del Jugador
-
         OFFSET_Y = -27
 
         pantalla.blit(
-        img,
-        (
-            self.forma.x - cam_x,
-            self.forma.y - cam_y - OFFSET_Y
+            img,
+            (
+                self.forma.x - cam_x,
+                self.forma.y - cam_y - OFFSET_Y
+            )
         )
-    )
 
 
 class Personaje(EntidadJuego):
+    AJUSTE_PIES = 40
+    ESCALA_VISUAL = 1.4
+
     @property
     def hitbox_pies(self):
-        """Franja angosta en la base del cuerpo, usada para detectar
-        piso (cuando el personaje cae o está parado)."""
         return pygame.Rect(
             self.forma.left,
             self.forma.bottom - self.alto_pies,
@@ -52,8 +50,6 @@ class Personaje(EntidadJuego):
 
     @property
     def hitbox_cabeza(self):
-        """Franja angosta en la parte superior del cuerpo, usada para
-        detectar techo (cuando el personaje sube saltando)."""
         return pygame.Rect(
             self.forma.left,
             self.forma.top,
@@ -78,14 +74,13 @@ class Personaje(EntidadJuego):
 
     def __init__(self, x, y, tamano=40, ancho_hitbox=None, alto_hitbox=None, alto_pies=16):
         super().__init__(tamano)
-        # El hitbox (self.forma) puede tener un tamaño distinto al sprite
-        # que se dibuja (self.imagen). Si no se pasa ancho/alto, usa "tamano".
+
         hb_w = ancho_hitbox if ancho_hitbox is not None else tamano
         hb_h = alto_hitbox if alto_hitbox is not None else tamano
+
         self.forma = pygame.Rect(x, y, hb_w, hb_h)
-        # Alto de la franja de "pies" usada para colisión con piso/techo.
-        # mover_x sigue usando self.forma (el cuerpo completo).
         self.alto_pies = alto_pies
+
         self.velocidad = 5
         self.gravedad = 0.6
         self.fuerza_salto = -18
@@ -102,12 +97,15 @@ class Personaje(EntidadJuego):
 
     def leer_teclas(self, teclas):
         self.vel_x = 0
+
         if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
             self.vel_x = -self.velocidad
             self.voltear = True
+
         if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
             self.vel_x = self.velocidad
             self.voltear = False
+
         if (teclas[pygame.K_w] or teclas[pygame.K_UP] or teclas[pygame.K_SPACE]) and self.en_suelo:
             self.vel_y = self.fuerza_salto
             self.en_suelo = False
@@ -117,11 +115,13 @@ class Personaje(EntidadJuego):
             gravedad_real = self.gravedad * 0.3
         else:
             gravedad_real = self.gravedad
+
         self.vel_y += gravedad_real
         self.forma.y += int(self.vel_y)
 
     def mover_x(self, plataformas):
         self.forma.x += self.vel_x
+
         for p in plataformas:
             if self.forma.colliderect(p):
                 if self.vel_x > 0:
@@ -131,16 +131,16 @@ class Personaje(EntidadJuego):
 
     def colision_y(self, plataformas):
         if self.vel_y >= 0:
-            # Cayendo o ya apoyado: solo cuentan los pies tocando la plataforma.
             pies = self.hitbox_pies
+
             for p in plataformas:
                 if pies.colliderect(p):
                     self.forma.bottom = p.top
                     self.vel_y = 0
                     self.en_suelo = True
         else:
-            # Subiendo (salto): solo cuenta la cabeza golpeando un techo.
             cabeza = self.hitbox_cabeza
+
             for p in plataformas:
                 if cabeza.colliderect(p):
                     self.forma.top = p.bottom
@@ -149,13 +149,12 @@ class Personaje(EntidadJuego):
     def limitar_x(self, ancho):
         if self.forma.left < 0:
             self.forma.left = 0
+
         if self.forma.right > ancho:
             self.forma.right = ancho
 
     def actualizar(self, plataformas, ancho, alto_total):
-
         self.comprobar_suelo(plataformas)
-
         self.mover_x(plataformas)
         self.aplicar_gravedad()
         self.colision_y(plataformas)
@@ -180,8 +179,10 @@ class Personaje(EntidadJuego):
     def perder_vida(self):
         self.vidas -= 1
         self.tiene_cable = False
+
         if self.chaquetas > 0:
             self.chaquetas -= 1
+
         return self.vidas > 0
 
     def reiniciar_pos(self, x, y):
@@ -194,10 +195,8 @@ class Personaje(EntidadJuego):
     def llego_meta(self, punto_b, radio=35):
         if not self.tiene_cable:
             return False
-        return self.distancia(punto_b) < radio
 
-    
-    AJUSTE_PIES = 14
+        return self.distancia(punto_b) < radio
 
     def dibujar(self, pantalla, cam_x=0, cam_y=0):
         if self.imagen is None:
@@ -205,18 +204,29 @@ class Personaje(EntidadJuego):
 
         img = pygame.transform.flip(self.imagen, self.voltear, False)
 
-        
-        offset_x = (self.forma.width - self.tamano) // 2
+        nuevo_ancho = int(self.tamano * self.ESCALA_VISUAL)
+        nuevo_alto = int(self.tamano * self.ESCALA_VISUAL)
 
-        sprite_y = self.forma.bottom - self.tamano + self.AJUSTE_PIES
+        img = pygame.transform.scale(img, (nuevo_ancho, nuevo_alto))
+
+        x = self.forma.centerx - nuevo_ancho // 2 - cam_x
+        y = self.forma.bottom - nuevo_alto + self.AJUSTE_PIES - cam_y
+
+        sombra_ancho = int(nuevo_ancho * 0.65)
+        sombra_alto = 8
+
+        sombra = pygame.Surface((sombra_ancho, sombra_alto), pygame.SRCALPHA)
+        pygame.draw.ellipse(sombra, (0, 0, 0, 120), sombra.get_rect())
 
         pantalla.blit(
-            img,
+            sombra,
             (
-                self.forma.x - cam_x + offset_x,
-                sprite_y - cam_y
+                self.forma.centerx - sombra_ancho // 2 - cam_x,
+                self.forma.bottom - cam_y - 3
             )
         )
+
+        pantalla.blit(img, (x, y))
 
 
 class Trampa(EntidadJuego):
@@ -229,30 +239,46 @@ class Trampa(EntidadJuego):
         self.min_x = min_x
         self.max_x = max_x
         self.radio_corte = 25
+        self.angulo = 0
+        self.imagen_original = None
+
         try:
             self.imagen = pygame.image.load(
                 "assets/images/sierracutre.png"
-                ).convert_alpha()
-            self.imagen = pygame.transform.scale(self.imagen,
-                                                 (tamano * 2, tamano * 2))
+            ).convert_alpha()
+
+            self.imagen = pygame.transform.scale(
+                self.imagen,
+                (tamano * 2, tamano * 2)
+            )
+
+            self.imagen_original = self.imagen
+
         except:
             self.imagen = None
+            self.imagen_original = None
 
     def mover(self, plataformas):
         self.x += self.velocidad
+
         if self.x <= self.min_x or self.x >= self.max_x:
             self.velocidad *= -1
             self.voltear = self.velocidad < 0
+
         hitbox = pygame.Rect(
-            self.x - self.tamano, int(self.y) - self.tamano,
-            self.tamano * 2, self.tamano * 2
+            self.x - self.tamano,
+            int(self.y) - self.tamano,
+            self.tamano * 2,
+            self.tamano * 2
         )
+
         for p in plataformas:
             if hitbox.colliderect(p):
                 if self.velocidad > 0:
                     self.x = p.left - self.tamano
                 else:
                     self.x = p.right + self.tamano
+
                 self.velocidad *= -1
 
     def corta_cable(self, origen, pos_jugador):
@@ -260,20 +286,31 @@ class Trampa(EntidadJuego):
         bx, by = pos_jugador
         dx = bx - ax
         dy = by - ay
+
         if dx == 0 and dy == 0:
             return math.hypot(self.x - ax, self.y - ay) < self.radio_corte
+
         t = ((self.x - ax) * dx + (self.y - ay) * dy) / (dx * dx + dy * dy)
         t = max(0.0, min(1.0, t))
+
         cx = ax + t * dx
         cy = ay + t * dy
+
         return math.hypot(self.x - cx, self.y - cy) < self.radio_corte
 
     def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if self.imagen_original is None:
+            return
 
-        pantalla.blit(
-            self.imagen,
-            (
-                self.x - self.tamano - cam_x,
-                self.y - self.tamano - cam_y
-            )
+        self.angulo = (self.angulo + 8) % 360
+
+        imagen_rotada = pygame.transform.rotate(
+            self.imagen_original,
+            self.angulo
         )
+
+        rect = imagen_rotada.get_rect(
+            center=(self.x - cam_x, self.y - cam_y)
+        )
+
+        pantalla.blit(imagen_rotada, rect.topleft)

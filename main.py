@@ -25,14 +25,20 @@ fuente = pygame.font.SysFont("Arial", 60)
 fuente_peq = pygame.font.SysFont("Arial", 25)
 
 try:
-    fondo_juego = pygame.image.load(SPRITE_FONDO).convert()
-    fondo_juego = pygame.transform.scale(fondo_juego, (ANCHO, ALTO))
-except:
-    fondo_juego = None
+    fondos_niveles = [
+        pygame.transform.smoothscale(pygame.image.load("assets/images/fondo_nivel1.png").convert(), (ANCHO, ALTO)),
+        pygame.transform.smoothscale(pygame.image.load("assets/images/fondo_nivel2.png").convert(), (ANCHO, ALTO)),
+        pygame.transform.smoothscale(pygame.image.load("assets/images/fondo_nivel3.png").convert(), (ANCHO, ALTO)),
+        pygame.transform.smoothscale(pygame.image.load("assets/images/fondo_nivel4.png").convert(), (ANCHO, ALTO)),
+        pygame.transform.smoothscale(pygame.image.load("assets/images/fondo_nivel5.png").convert(), (ANCHO, ALTO)),
+    ]
+except Exception as e:
+    print("Error cargando fondos:", e)
+    fondos_niveles = []
 
 try:
     sprite_plataforma = pygame.image.load("assets/images/plataforma.png").convert_alpha()
-    sprite_plataforma = pygame.transform.scale(sprite_plataforma ,(90,90))
+    sprite_plataforma = pygame.transform.scale(sprite_plataforma, (90, 90))
 except:
     sprite_plataforma = None
 
@@ -41,7 +47,7 @@ try:
     sprite_rack_b = pygame.transform.scale(sprite_rack, (80, 80))
     sprite_rack_med = pygame.transform.scale(sprite_rack, (80, 80))
     sprite_rack_apagado = pygame.image.load("assets/images/rack_apagado.png").convert_alpha()
-    sprite_rack_apagado = pygame.transform.scale(sprite_rack_apagado,(80,80))
+    sprite_rack_apagado = pygame.transform.scale(sprite_rack_apagado, (80, 80))
 except:
     sprite_rack = None
     sprite_rack_b = None
@@ -75,12 +81,13 @@ def crear_nivel(idx):
     nivel = Level(ANCHO, ALTO, idx)
     trampas = []
     for pos in nivel.pos_trampas:
+        margen = int(ANCHO * 0.08)
         trampas.append(Trampa(
             x=pos[0], y=pos[1],
-            tamano=int(min(ANCHO, ALTO) * 0.04),
-            velocidad=max(3, ANCHO // 500),
-            min_x=pos[0] - int(ANCHO * 0.20),
-            max_x=pos[0] + int(ANCHO * 0.20)
+            tamano=int(min(ANCHO, ALTO) * 0.035),
+            velocidad=max(2, ANCHO // 700),
+            min_x=pos[0] - margen,
+            max_x=pos[0] + margen
         ))
     todas_colisiones = nivel.plataformas + nivel.paredes
     tiempo_restante = nivel.tiempo_limite * 1000
@@ -101,7 +108,7 @@ def reiniciar_nivel():
     for i, pos in enumerate(nivel.pos_trampas):
         trampas[i].x = pos[0]
         trampas[i].y = pos[1]
-        trampas[i].velocidad = max(3, ANCHO // 500)
+        trampas[i].velocidad = max(2, ANCHO // 700)
     game_over = False
     tiempo_sin_daño = 0
     tiempo_restante = nivel.tiempo_limite * 1000
@@ -139,10 +146,10 @@ def texto(msg, fnt, color, pos):
 
 
 def dibujar_fondo(cam_y):
-    if fondo_juego:
-        pantalla.blit(fondo_juego, (0, 0))
+    if fondos_niveles and nivel.numero < len(fondos_niveles):
+        pantalla.blit(fondos_niveles[nivel.numero], (0, 0))
     else:
-        pantalla.fill((20, 20, 40))
+        pantalla.fill((10, 20, 50))
 
 
 def dibujar_nivel(cam_y):
@@ -193,18 +200,34 @@ def dibujar_nivel(cam_y):
 
 def dibujar_cable(cam_y):
     ax, ay = punto_cable_actual[0], punto_cable_actual[1] - cam_y
-    jx, jy = jugador.forma.centerx, jugador.forma.centery - cam_y
+
+    if jugador.voltear:
+        mano_x = jugador.forma.left - 5
+    else:
+        mano_x = jugador.forma.right + 5
+    mano_y = jugador.forma.centery - cam_y - 8
+
     if jugador.tiene_cable:
-        dx = jx - ax
-        dy = jy - ay
-        longitud = max(1, int((dx**2 + dy**2)**0.5))
-        for i in range(0, longitud, 4):
-            t = i / longitud
-            px = int(ax + dx * t)
-            py = int(ay + dy * t)
-            grosor = 4 if i % 8 < 4 else 3
-            color = (30, 30, 30) if i % 8 < 4 else (80, 80, 80)
-            pygame.draw.circle(pantalla, color, (px, py), grosor)
+        mid_x = (ax + mano_x) // 2
+        mid_y = max(ay, mano_y) + 45
+        puntos = []
+        for i in range(25):
+            t = i / 24
+            x = int((1-t)**2 * ax + 2*(1-t)*t * mid_x + t**2 * mano_x)
+            y = int((1-t)**2 * ay + 2*(1-t)*t * mid_y + t**2 * mano_y)
+            puntos.append((x, y))
+
+        pygame.draw.lines(pantalla, (0, 0, 0), False, puntos, 10)
+        pygame.draw.lines(pantalla, (25, 25, 25), False, puntos, 7)
+        pygame.draw.lines(pantalla, (95, 95, 95), False, puntos, 3)
+        pygame.draw.lines(pantalla, (160, 160, 160), False, puntos, 1)
+
+        conector_rect = pygame.Rect(mano_x - 8, mano_y - 5, 16, 10)
+        pygame.draw.rect(pantalla, (20, 20, 20), conector_rect, border_radius=3)
+        pygame.draw.rect(pantalla, (130, 130, 130), conector_rect, 2, border_radius=3)
+
+        pygame.draw.circle(pantalla, (20, 20, 20), (ax, ay), 8)
+        pygame.draw.circle(pantalla, (120, 120, 120), (ax, ay), 4)
     else:
         w = fuente_peq.size("Cable cortado: vuelve al punto C o A")[0]
         texto("Cable cortado: vuelve al punto C o A", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
