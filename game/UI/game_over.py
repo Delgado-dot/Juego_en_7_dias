@@ -1,3 +1,4 @@
+
 import pygame
 import sys
 from datetime import datetime
@@ -52,25 +53,213 @@ class GameOver:
         )
 
     def dibujar(self):
+
         if self.fondo:
             self.pantalla.blit(self.fondo, (0, 0))
+
+            sombra_fondo = pygame.Surface(
+                (self.ancho, self.alto)
+            )
+            sombra_fondo.set_alpha(170)
+            sombra_fondo.fill((0, 0, 0))
+
+            self.pantalla.blit(
+                sombra_fondo,
+                (0, 0)
+            )
         else:
-            self.pantalla.fill((20, 0, 0))
+            self.pantalla.fill((15, 0, 0))
 
-        titulo = self.fuente_titulo.render("GAME OVER", True, (255, 50, 50))
-        self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
+        tiempo = pygame.time.get_ticks()
 
-        pts = self.fuente_menu.render(f"Puntaje: {self.puntaje}", True, (255, 255, 255))
-        self.pantalla.blit(pts, pts.get_rect(center=(self.ancho // 2, self.alto // 3 + 20)))
+# =========================
+# TITULO
+# =========================
+
+        brillo = int(
+            30 * abs(
+                __import__("math").sin(
+                    tiempo * 0.004
+                )
+            )
+        )
+
+        sombra = self.fuente_titulo.render(
+        "GAME OVER",
+        True,
+        (0, 0, 0)
+        )
+
+        titulo = self.fuente_titulo.render(
+            "GAME OVER",
+            True,
+            (
+            min(255, 220 + brillo),
+            50,
+            50
+            )
+        )
+
+        self.pantalla.blit(
+            sombra,
+            sombra.get_rect(
+                center=(
+                    self.ancho // 2 + 4,
+                    self.alto // 5 + 4
+                )
+            )
+        )
+
+        self.pantalla.blit(
+            titulo,
+            titulo.get_rect(
+                center=(
+                    self.ancho // 2,
+                    self.alto // 5
+                )
+            )
+        )
+
+# =========================
+# PANEL CENTRAL
+# =========================
+        panel_ancho = 820
+        panel_alto = 440
+
+        x = self.ancho // 2 - panel_ancho // 2
+        y = self.alto // 2 - panel_alto // 2 + 80
+
+        # PANEL (oscuro)
+        panel = pygame.Surface((panel_ancho, panel_alto))
+        panel.set_alpha(190)
+        panel.fill((12, 12, 12))
+
+        self.pantalla.blit(panel, (x, y))
+
+        # BORDE PRINCIPAL (rojo elegante)
+        pygame.draw.rect(
+            self.pantalla,
+            (220, 60, 60),
+            (x, y, panel_ancho, panel_alto),
+            3,
+            border_radius=18
+        )
+
+    # BORDE INTERNO (detalle pro)
+        pygame.draw.rect(
+            self.pantalla,
+            (80, 0, 0),
+            (x + 6, y + 6, panel_ancho - 12, panel_alto - 12),
+            1,
+            border_radius=14
+        )
+# =========================
+# PUNTAJE
+# =========================
+
+        texto_pts = self.fuente_menu.render(
+            f"PUNTAJE FINAL: {self.puntaje}",
+            True,
+            (255, 220, 100)
+        )
+
+        self.pantalla.blit(
+            texto_pts,
+            texto_pts.get_rect(
+                center=(
+                    self.ancho // 2,
+                    self.alto // 2 - 80
+                )
+            )
+        )
+
+# =========================
+# NIVEL
+# =========================
+
+        texto_nivel = self.fuente_peq.render(
+            f"Nivel alcanzado: {self.nivel_llegado}",
+            True,
+            (220, 220, 220)
+        )
+
+        self.pantalla.blit(
+            texto_nivel,
+            texto_nivel.get_rect(
+                center=(
+                    self.ancho // 2,
+                    self.alto // 2 - 35
+                )
+            )
+        )
+
+# =========================
+# OPCIONES
+# =========================
 
         for i, op in enumerate(self.opciones):
-            color = (0, 255, 150) if i == self.opcion else (200, 200, 200)
-            prefijo = "> " if i == self.opcion else "  "
-            t = self.fuente_menu.render(prefijo + op, True, color)
-            self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, self.alto // 2 + i * 70)))
 
-        inst = self.fuente_peq.render("W/S mover   Enter elegir", True, (100, 100, 100))
-        self.pantalla.blit(inst, inst.get_rect(center=(self.ancho // 2, self.alto - 40)))
+            y = self.alto // 2 + 40 + i * 60
+
+            if i == self.opcion:
+
+                pygame.draw.rect(
+                    self.pantalla,
+                    (255, 80, 80),
+                    (
+                        self.ancho // 2 - 250,
+                        y - 25,
+                        500,
+                        50
+                    ),
+                    2,
+                    border_radius=10
+                )
+
+                texto = self.fuente_menu.render(
+                    op,
+                    True,
+                    (255, 120, 120)
+                )
+
+            else:
+
+                texto = self.fuente_menu.render(
+                    op,
+                    True,
+                    (200, 200, 200)
+                )
+
+            self.pantalla.blit(
+                    texto,
+                    texto.get_rect(
+                        center=(
+                            self.ancho // 2,
+                            y
+                        )
+                    )
+                )
+
+# =========================
+# MENSAJE INFERIOR
+# =========================
+
+        mensaje = self.fuente_peq.render(
+            "W/S o Flechas - ENTER para seleccionar",
+            True,
+            (150, 150, 150)
+        )
+
+        self.pantalla.blit(
+            mensaje,
+            mensaje.get_rect(
+                center=(
+                    self.ancho // 2,
+                    self.alto - 35
+                )
+            )
+        )
+
         pygame.display.flip()
 
     def ejecutar(self):

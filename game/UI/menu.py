@@ -2,6 +2,7 @@ import pygame
 import sys
 import cv2
 from db.database_manager import top_5_puntajes, leer_csv, PERSONAJES_CSV
+from game.UI.menu_efects import MenuEffects
 
 
 class Menu:
@@ -15,6 +16,7 @@ class Menu:
         self.frame_actual = 0
         self.direccion_video = 1
         self.titulo_img = None
+        self.effects = MenuEffects(ancho, alto)
 
         try:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 60)
@@ -39,19 +41,21 @@ class Menu:
         pygame.display.flip()
 
         try:
+            MENU_X = int(ancho * 0.70)
             self.titulo_img = pygame.image.load("assets/images/HUD/Titulomenu.png").convert_alpha()
-            self.titulo_img = pygame.transform.scale(self.titulo_img, (600, 300))
+            self.titulo_img = pygame.transform.scale(self.titulo_img, (600, 350))
             self.btn_jugar = pygame.image.load("assets/images/HUD/boton_jugar.png").convert_alpha()
-            self.btn_jugar = pygame.transform.scale(self.btn_jugar, (450, 100))
+            self.btn_jugar = pygame.transform.scale(self.btn_jugar, (500, 220))
             self.btn_ranking = pygame.image.load("assets/images/HUD/boton_ranking.png").convert_alpha()
-            self.btn_ranking = pygame.transform.scale(self.btn_ranking, (450, 100))
+            self.btn_ranking = pygame.transform.scale(self.btn_ranking, (425, 220))
             self.btn_salir = pygame.image.load("assets/images/HUD/boton_salir.png").convert_alpha()
-            self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 100))
-            self.rect_jugar = self.btn_jugar.get_rect(center=(ancho // 2, 450))
-            self.rect_ranking = self.btn_ranking.get_rect(center=(ancho // 2, 550))
-            self.rect_salir = self.btn_salir.get_rect(center=(ancho // 2, 650))
+            self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 220))
+            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X , 450))
+            self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 550))
+            self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 640))
         except Exception as e:
             print(f"Error cargando botones: {e}")
+            self.titulo_img = None
 
         try:
             video = cv2.VideoCapture("assets/images/HUD/menu_fondo.mp4")
@@ -108,25 +112,40 @@ class Menu:
             else:
                 self.pantalla.fill((10, 10, 30))
 
-            titulo = self.fuente_titulo.render("TOP 5", True, (0, 200, 255))
-            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, 60)))
+            overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 140))
+            self.pantalla.blit(overlay, (0, 0))
+
+            self.effects.dibujar_particulas(self.pantalla)
+
+            titulo = self.effects.render_texto_pulso(
+                self.fuente_titulo, "TOP 5", (120, 230, 255), 1, 0.08
+            )
+            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, 70)))
+
+            panel_w, panel_h = 900, 520
+            panel_x = self.ancho // 2 - panel_w // 2
+            panel_y = 120
+            self.effects.dibujar_panel_glass(self.pantalla, panel_x, panel_y, panel_w, panel_h)
 
             if puntajes:
-                y = 160
+                y = panel_y + 60
+                colores = [(255, 215, 0), (180, 180, 180), (205, 127, 50)]
                 for i, p in enumerate(puntajes):
                     nombre = nombre_por_id(p.get("personaje_id", 0))
                     pts = p.get("puntos", 0)
-                    nivel = p.get("nivel_id", "?")
-                    chaqueta = "Si" if p.get("chaqueta_equipada", "False") == "True" else "No"
-                    linea = f"{i+1}. {nombre} | {pts} pts | Niv {nivel} | Chaqueta: {chaqueta}"
-                    t = self.fuente_peq.render(linea, True, (255, 255, 255))
-                    self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, y)))
-                    y += 60
+                    color = colores[i] if i < 3 else (220, 220, 220)
+                    linea = f"{i+1}. {nombre}   |   {pts} pts"
+                    render = self.fuente_menu.render(linea, True, color)
+                    self.pantalla.blit(render, render.get_rect(center=(self.ancho // 2, y)))
+                    pygame.draw.line(self.pantalla, (60, 60, 60),
+                        (panel_x + 80, y + 25), (panel_x + panel_w - 80, y + 25), 1)
+                    y += 90
             else:
                 vacio = self.fuente_menu.render("Sin puntajes aun", True, (150, 150, 150))
                 self.pantalla.blit(vacio, vacio.get_rect(center=(self.ancho // 2, self.alto // 2)))
 
-            inst = self.fuente_peq.render("Presiona cualquier tecla para volver", True, (100, 100, 100))
+            inst = self.fuente_peq.render("Presiona cualquier tecla para volver", True, (180, 180, 180))
             self.pantalla.blit(inst, inst.get_rect(center=(self.ancho // 2, self.alto - 40)))
             pygame.display.flip()
             reloj.tick(60)
@@ -137,24 +156,70 @@ class Menu:
         else:
             self.pantalla.fill((10, 10, 30))
 
-        if self.titulo_img:
-            x = (self.ancho - self.titulo_img.get_width()) // 2
-            self.pantalla.blit(self.titulo_img, (x, 50))
-            self.pantalla.blit(self.btn_jugar, self.rect_jugar.topleft)
-            self.pantalla.blit(self.btn_ranking, self.rect_ranking.topleft)
-            self.pantalla.blit(self.btn_salir, self.rect_salir.topleft)
-            color_borde = (255, 0, 128) if self.opcion == 2 else (0, 255, 240)
-            rects = [self.rect_jugar, self.rect_ranking, self.rect_salir]
-            pygame.draw.rect(self.pantalla, color_borde, rects[self.opcion], 4, border_radius=10)
-        else:
-            titulo = self.fuente_titulo.render("Cable Runner", True, (0, 200, 255))
-            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
-            for i, op in enumerate(self.opciones):
-                color = (0, 255, 150) if i == self.opcion else (200, 200, 200)
-                prefijo = "> " if i == self.opcion else "  "
-                t = self.fuente_menu.render(prefijo + op, True, color)
-                self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, self.alto // 2 + i * 70)))
+        overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 120))
+        self.pantalla.blit(overlay, (0, 0))
 
+        self.effects.dibujar_particulas(self.pantalla)
+
+        if self.titulo_img:
+            x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
+            self.pantalla.blit(self.titulo_img, (x, 50))
+
+            botones = [
+                (self.btn_jugar, self.rect_jugar),
+                (self.btn_ranking, self.rect_ranking),
+                (self.btn_salir, self.rect_salir)
+            ]
+
+            for i, (btn, rect) in enumerate(botones):
+                if i == self.opcion:
+
+                    pulso = self.effects.obtener_pulso()
+                    escala = 1 + pulso * 0.05
+                    nuevo_w = int(rect.width * escala)
+                    nuevo_h = int(rect.height * escala)
+                    btn_animado = pygame.transform.smoothscale(
+                        btn,
+                        (nuevo_w, nuevo_h))
+
+                    nuevo_rect = btn_animado.get_rect(
+                         center=rect.center)
+
+                    self.pantalla.blit(
+                        btn_animado,
+                        nuevo_rect.topleft)
+                else:
+
+                    self.pantalla.blit(
+                        btn,
+                        rect.topleft)
+        else:
+            titulo = self.effects.render_texto_pulso(
+                self.fuente_titulo, "Cable Runner", (120, 230, 255)
+            )
+            self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
+
+            panel_w, panel_h = 620, 340
+            panel_x = self.ancho // 2 - panel_w // 2
+            panel_y = self.alto // 2 - 120
+            self.effects.dibujar_panel_glass(self.pantalla, panel_x, panel_y, panel_w, panel_h)
+
+            for i, op in enumerate(self.opciones):
+                y = self.alto // 2 + i * 75
+                if i == self.opcion:
+                    self.effects.dibujar_glow_boton(
+                        self.pantalla, self.ancho // 2 - 190, y - 25, 380, 50
+                    )
+                    texto = self.effects.render_texto_pulso(
+                        self.fuente_menu, op, (255, 255, 255), 1, 0.06
+                    )
+                else:
+                    texto = self.fuente_menu.render(op, True, (200, 200, 200))
+                self.pantalla.blit(texto, texto.get_rect(center=(self.ancho // 2, y)))
+
+        controles = self.fuente_peq.render("W/S o Flechas  |  ENTER", True, (180, 180, 180))
+        self.pantalla.blit(controles, controles.get_rect(center=(self.ancho // 2, self.alto - 40)))
         pygame.display.flip()
 
     def ejecutar(self):

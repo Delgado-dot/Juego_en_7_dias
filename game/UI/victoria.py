@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from db.database_manager import crear_jugador, crear_personaje, guardar_puntaje
 from game.UI.input_nombre import InputNombre
+import math
 
 class Victoria:
     def __init__(self, pantalla, ancho, alto, puntaje, nivel_llegado=1, chaquetas=0):
@@ -52,25 +53,161 @@ class Victoria:
         )
 
     def dibujar(self):
+
+    # =========================
+    # FONDO + OVERLAY
+    # =========================
         if self.fondo:
             self.pantalla.blit(self.fondo, (0, 0))
         else:
             self.pantalla.fill((0, 20, 0))
 
-        titulo = self.fuente_titulo.render("GANASTE", True, (0, 255, 150))
-        self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, self.alto // 4)))
+        overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 140))
+        self.pantalla.blit(overlay, (0, 0))
 
-        pts = self.fuente_menu.render(f"Puntaje: {self.puntaje}", True, (255, 255, 255))
-        self.pantalla.blit(pts, pts.get_rect(center=(self.ancho // 2, self.alto // 3 + 20)))
+        tiempo = pygame.time.get_ticks()
 
+    # =========================
+    # TITULO CON PULSO
+    # ========================
+        pulso = (math.sin(tiempo * 0.005) + 1) / 2
+        escala = 1 + pulso * 0.06
+
+        color = (
+            0,
+            200 + int(pulso * 55),
+            150
+        )
+
+        titulo_base = self.fuente_titulo.render("GANASTE", True, color)
+
+        titulo = pygame.transform.smoothscale(
+            titulo_base,
+            (
+                int(titulo_base.get_width() * escala),
+                int(titulo_base.get_height() * escala)
+            )
+        )
+
+        self.pantalla.blit(
+            titulo,
+            titulo.get_rect(center=(self.ancho // 2, self.alto // 4))
+        )
+
+    # =========================
+    # PUNTAJE (GLASS CARD)
+    # =========================
+        panel_w = 420
+        panel_h = 120
+
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((20, 25, 35, 160))
+
+        pygame.draw.rect(
+            panel,
+            (0, 255, 150, 120),
+            (0, 0, panel_w, panel_h),
+            2,
+            border_radius=20
+        )
+
+        self.pantalla.blit(
+            panel,
+            (
+                self.ancho // 2 - panel_w // 2,
+                self.alto // 3 - 10
+            )
+        )
+
+        pts = self.fuente_menu.render(
+            f"Puntaje: {self.puntaje}",
+            True,
+            (255, 255, 255)
+        )
+
+        self.pantalla.blit(
+            pts,
+            pts.get_rect(center=(self.ancho // 2, self.alto // 3 + 50))
+        )
+
+    # =========================
+    # OPCIONES CON GLASS + GLOW
+    # =========================
         for i, op in enumerate(self.opciones):
-            color = (0, 255, 150) if i == self.opcion else (200, 200, 200)
-            prefijo = "> " if i == self.opcion else "  "
-            t = self.fuente_menu.render(prefijo + op, True, color)
-            self.pantalla.blit(t, t.get_rect(center=(self.ancho // 2, self.alto // 2 + i * 70)))
 
-        inst = self.fuente_peq.render("W/S mover   Enter elegir", True, (100, 100, 100))
-        self.pantalla.blit(inst, inst.get_rect(center=(self.ancho // 2, self.alto - 40)))
+            y = self.alto // 2 + i * 75
+
+            if i == self.opcion:
+
+                pulso_sel = (math.sin(tiempo * 0.006) + 1) / 2
+
+                glow_alpha = 60 + int(pulso_sel * 90)
+
+                glow = pygame.Surface((420, 70), pygame.SRCALPHA)
+
+                pygame.draw.rect(
+                    glow,
+                    (0, 255, 150, glow_alpha),
+                    (0, 0, 420, 70),
+                    border_radius=20
+                )
+
+                self.pantalla.blit(
+                    glow,
+                    (self.ancho // 2 - 210, y - 35)
+                )
+
+                texto = self.fuente_menu.render(
+                    "> " + op,
+                    True,
+                    (0, 255, 200)
+                )
+
+                escala_t = 1 + pulso_sel * 0.05
+
+                texto = pygame.transform.smoothscale(
+                    texto,
+                    (
+                        int(texto.get_width() * escala_t),
+                        int(texto.get_height() * escala_t)
+                    )
+                )
+
+            else:
+
+                fade = 180 + int(
+                    40 * math.sin(tiempo * 0.003 + i)
+                )
+
+                texto = self.fuente_menu.render(
+                    "  " + op,
+                    True,
+                    (fade, fade, fade)
+                )
+
+            self.pantalla.blit(
+                texto,
+                texto.get_rect(
+                    center=(self.ancho // 2, y)
+                )
+            )
+        
+
+    # =========================
+    # INSTRUCCIONES
+    # =========================
+        inst = self.fuente_peq.render(
+            "W/S mover   |   ENTER seleccionar",
+            True,
+            (150, 150, 150)
+        )
+
+        self.pantalla.blit(
+            inst,
+            inst.get_rect(center=(self.ancho // 2, self.alto - 40))
+        )
+
         pygame.display.flip()
 
     def ejecutar(self):
