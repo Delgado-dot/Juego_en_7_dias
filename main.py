@@ -1,12 +1,12 @@
 import sys
 import math
 import pygame
-from Entidades import Personaje, Trampa
-from game.UI.hud import HUD
+from Entidades import *
+from game.UI.hud import *
 from game.level import Level, NIVELES
-from game.UI.menu import Menu
-from game.UI.game_over import GameOver
-from game.UI.victoria import Victoria
+from game.UI.menu import *
+from game.UI.game_over import *
+from game.UI.victoria import *
 from config import *
 
 pygame.init()
@@ -21,8 +21,8 @@ pygame.display.set_caption(TITULO)
 
 reloj = pygame.time.Clock()
 
-fuente = pygame.font.SysFont("Arial", 60)
-fuente_peq = pygame.font.SysFont("Arial", 25)
+fuente = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 60)
+fuente_peq = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 15)
 
 try:
     fondos_niveles = [

@@ -50,7 +50,7 @@ class Menu:
             self.btn_ranking = pygame.transform.scale(self.btn_ranking, (425, 220))
             self.btn_salir = pygame.image.load("assets/images/HUD/boton_salir.png").convert_alpha()
             self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 220))
-            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X , 450))
+            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 450))
             self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 550))
             self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 640))
         except Exception as e:
@@ -174,26 +174,15 @@ class Menu:
 
             for i, (btn, rect) in enumerate(botones):
                 if i == self.opcion:
-
                     pulso = self.effects.obtener_pulso()
                     escala = 1 + pulso * 0.05
                     nuevo_w = int(rect.width * escala)
                     nuevo_h = int(rect.height * escala)
-                    btn_animado = pygame.transform.smoothscale(
-                        btn,
-                        (nuevo_w, nuevo_h))
-
-                    nuevo_rect = btn_animado.get_rect(
-                         center=rect.center)
-
-                    self.pantalla.blit(
-                        btn_animado,
-                        nuevo_rect.topleft)
+                    btn_animado = pygame.transform.smoothscale(btn, (nuevo_w, nuevo_h))
+                    nuevo_rect = btn_animado.get_rect(center=rect.center)
+                    self.pantalla.blit(btn_animado, nuevo_rect.topleft)
                 else:
-
-                    self.pantalla.blit(
-                        btn,
-                        rect.topleft)
+                    self.pantalla.blit(btn, rect.topleft)
         else:
             titulo = self.effects.render_texto_pulso(
                 self.fuente_titulo, "Cable Runner", (120, 230, 255)
@@ -237,12 +226,54 @@ class Menu:
                     elif evento.key in (pygame.K_RETURN, pygame.K_SPACE):
                         op = self.opciones[self.opcion]
                         if op == "Jugar":
+                            # Sin efecto - directo al juego
                             pygame.mixer.music.stop()
                             return "jugar"
+
                         elif op == "Ranking":
+                            # Efecto matrix
+                            self.effects.iniciar_matrix(lambda: None)
+                            while self.effects.matrix_activo:
+                                for ev in pygame.event.get():
+                                    if ev.type == pygame.QUIT:
+                                        pygame.quit()
+                                        sys.exit()
+                                if self.frames_video:
+                                    self.avanzar_video()
+                                else:
+                                    self.pantalla.fill((10, 10, 30))
+                                overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+                                overlay.fill((0, 0, 0, 120))
+                                self.pantalla.blit(overlay, (0, 0))
+                                self.effects.dibujar_particulas(self.pantalla)
+                                if self.titulo_img:
+                                    x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
+                                    self.pantalla.blit(self.titulo_img, (x, 50))
+                                    for btn, rect in [(self.btn_jugar, self.rect_jugar),
+                                                      (self.btn_ranking, self.rect_ranking),
+                                                      (self.btn_salir, self.rect_salir)]:
+                                        self.pantalla.blit(btn, rect.topleft)
+                                self.effects.actualizar_matrix(self.pantalla)
+                                pygame.display.flip()
+                                reloj.tick(60)
+                            # Mostrar ranking y volver al menu
                             self.mostrar_ranking()
+
                         elif op == "Salir":
+                            # Efecto cristal
+                            pantalla_captura = self.pantalla.copy()
+                            self.effects.iniciar_cristal(lambda: None, pantalla_captura)
+                            while self.effects.cristal_activo:
+                                for ev in pygame.event.get():
+                                    if ev.type == pygame.QUIT:
+                                        pygame.quit()
+                                        sys.exit()
+                                self.pantalla.blit(pantalla_captura, (0, 0))
+                                self.effects.actualizar_cristal(self.pantalla)
+                                pygame.display.flip()
+                                reloj.tick(60)
                             pygame.quit()
                             sys.exit()
+
             self.dibujar()
             reloj.tick(60)
