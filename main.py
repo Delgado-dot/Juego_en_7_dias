@@ -140,6 +140,41 @@ def camara():
     return 0, cam_y
 
 
+def portal_transicion(cerrar=True):
+    cam_x, cam_y = camara()
+    centro = (
+        jugador.forma.centerx - cam_x,
+        jugador.forma.centery - cam_y
+    )
+    radio_max = int((ANCHO**2 + ALTO**2) ** 0.5)
+    overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+
+    if cerrar:
+        rango = range(radio_max, 0, -15)
+    else:
+        rango = range(0, radio_max, 15)
+
+    for radio in rango:
+        dibujar_fondo(cam_y)
+        dibujar_cable(cam_y)
+        dibujar_nivel(cam_y)
+
+        for t in trampas:
+            t.dibujar(pantalla, cam_x, cam_y)
+
+        jugador.dibujar(pantalla, cam_x, cam_y)
+
+        overlay.fill((0, 0, 0, 255))
+        pygame.draw.circle(overlay, (0, 0, 0, 0), centro, radio)
+        pantalla.blit(overlay, (0, 0))
+
+        pygame.draw.circle(pantalla, (120, 0, 255), centro, radio + 15, 12)
+        pygame.draw.circle(pantalla, (200, 120, 255), centro, radio + 5, 6)
+
+        pygame.display.flip()
+        reloj.tick(120)
+
+
 def texto(msg, fnt, color, pos):
     img = fnt.render(msg, True, color)
     pantalla.blit(img, pos)
@@ -313,6 +348,8 @@ while True:
 
     reiniciar_juego()
 
+    portal_transicion(False)
+
     jugando = True
     while jugando:
         for evento in pygame.event.get():
@@ -393,6 +430,8 @@ while True:
                 if siguiente >= len(NIVELES):
                     victoria_final = True
                 else:
+                    portal_transicion(True)
+
                     nivel_idx = siguiente
                     crear_nivel(nivel_idx)
                     todas_colisiones = nivel.plataformas + nivel.paredes
@@ -401,6 +440,8 @@ while True:
                     jugador.vel_x = 0
                     jugador.vel_y = 0
                     jugador.tiene_cable = True
+
+                    portal_transicion(False)
 
         dibujar_fondo(cam_y)
 
