@@ -314,3 +314,23 @@ class Trampa(EntidadJuego):
         )
 
         pantalla.blit(imagen_rotada, rect.topleft)
+class PlataformaFantasma:
+    def __init__(self, rect):
+        self.rect = rect
+        self.activada = False
+        self.desaparecida = False
+        self.alpha = 255
+        self.tiempo_inicio = 0
+    def pisar(self):
+        if not self.activada:
+            self.activada = True
+            self.tiempo_inicio = pygame.time.get_ticks()
+    def actualizar(self):
+        if self.activada and not self.desaparecida:
+            tiempo = pygame.time.get_ticks() - self.tiempo_inicio
+            self.alpha = max(0, 255 - tiempo)
+            if tiempo > 500:
+                self.desaparecida = True
+
+    def es_solida(self):
+        return not self.desaparecida

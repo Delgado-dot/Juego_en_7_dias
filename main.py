@@ -115,6 +115,11 @@ def reiniciar_nivel():
     nivel_completado = False
     punto_cable_actual = nivel.punto_a
     nivel.pos_chaqueta = nivel.pos_chaqueta_original
+    for pf in nivel.plataformas_fantasma:
+        pf.activada = False
+        pf.desaparecida = False
+        pf.alpha = 255
+        pf.tiempo_inicio = 0
 
 
 def reiniciar_juego():
@@ -196,6 +201,19 @@ def dibujar_nivel(cam_y):
                 pantalla.blit(sp, r)
             else:
                 pygame.draw.rect(pantalla, GRIS, r)
+    for pf in nivel.plataformas_fantasma:
+        if pf.desaparecida:
+            continue
+        r= pygame.Rect( pf.rect.x,pf.rect.y - cam_y,
+                       pf.rect.w, pf.rect.h)
+        if sprite_plataforma:
+            sp = pygame.transform.scale(sprite_plataforma,(pf.rect.w,pf.rect.h))
+            sp.set_alpha(pf.alpha)
+            pantalla.blit(sp,r)
+        else:
+            superficie =pygame.Surface((pf.rect.w, pf.rect.h),pygame.SRCALPHA)
+            superficie.fill((180, 180, 180, pf.alpha))
+            pantalla.blit(superficie, r)
 
     for p in nivel.paredes:
         r = pygame.Rect(p.x, p.y - cam_y, p.w, p.h)
@@ -265,7 +283,7 @@ def dibujar_cable(cam_y):
         pygame.draw.circle(pantalla, (120, 120, 120), (ax, ay), 4)
     else:
         w = fuente_peq.size("Cable cortado: vuelve al punto C o A")[0]
-        texto("Cable cortado: vuelve al punto C o A", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
+        texto("Cable cortado: vuelve al rack", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
 
 
 nivel_idx = 0
@@ -392,7 +410,28 @@ while True:
             teclas = pygame.key.get_pressed()
             estaba_en_suelo = jugador.en_suelo
             jugador.leer_teclas(teclas)
-            jugador.actualizar(todas_colisiones, ANCHO, nivel.alto_total)
+            colisiones = todas_colisiones.copy()
+
+            for pf in nivel.plataformas_fantasma:
+                if pf.es_solida():
+                    colisiones.append(pf.rect)
+
+            jugador.actualizar(colisiones, ANCHO, nivel.alto_total)
+
+            for pf in nivel.plataformas_fantasma:
+                if pf.desaparecida:
+                    continue
+
+                pie_pf = pygame.Rect(
+                    jugador.forma.left,
+                    jugador.forma.bottom,
+                    jugador.forma.width,
+                    2
+                )
+                if pie_pf.colliderect(pf.rect):
+                    pf.pisar()
+
+                pf.actualizar()
 
             for t in trampas:
                 t.mover(todas_colisiones)

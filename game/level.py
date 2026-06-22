@@ -1,5 +1,6 @@
 import pygame
 from config import *
+from Entidades import PlataformaFantasma
 
 tamaño_mapa = 70
 
@@ -20,7 +21,7 @@ NIVELES = [
             "$    ####     ##   $",
             "$           E      $",
             "$      J           $",
-            "$   ####           $",
+            "$   ####     %%%%% $",
             "$                  $",
             "$A                 $",
             "####################"
@@ -131,6 +132,7 @@ class Level:
         self.punto_b = (0, 0)
         self.pos_trampas = []
         self.checkpoints = []
+        self.plataformas_fantasma = []
         self.paredes = []
         self.pos_checkpoints_o = []
         self.pos_chaqueta = None
@@ -191,3 +193,6 @@ class Level:
                     self.paredes.append(
                         pygame.Rect(x, y, self.tile_w, self.tile_h)
                     )
+                elif tile == "%":
+                    self.plataformas_fantasma.append(
+                        PlataformaFantasma(pygame.Rect(x,y,self.tile_w,self.tile_h )))

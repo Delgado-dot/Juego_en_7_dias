@@ -20,7 +20,6 @@ class MenuEffects:
                 "alpha": random.randint(50, 180)
             })
 
-        # --- EFECTOS DE TRANSICION ---
         self.matrix_activo = False
         self.matrix_digitos = []
         self.matrix_tiempo_inicio = 0
@@ -35,9 +34,6 @@ class MenuEffects:
         self.cristal_callback = None
         self.cristal_superficie = None
 
-    # =================================
-    # PARTICULAS
-    # =================================
     def dibujar_particulas(self, pantalla):
         for p in self.particulas:
             p["x"] += p["vx"]
@@ -59,16 +55,11 @@ class MenuEffects:
             pygame.draw.circle(surf, (255, 255, 255, p["alpha"]), (radio * 3, radio * 3), radio)
             pantalla.blit(surf, (p["x"], p["y"]))
 
-    # =================================
-    # PULSO
-    # =================================
+
     def obtener_pulso(self, velocidad=0.005):
         tiempo = pygame.time.get_ticks()
         return (math.sin(tiempo * velocidad) + 1) / 2
 
-    # =================================
-    # TEXTO CON PULSO
-    # =================================
     def render_texto_pulso(self, fuente, texto, color, escala_base=1, intensidad=0.08):
         pulso = self.obtener_pulso()
         escala = escala_base + pulso * intensidad
@@ -78,18 +69,12 @@ class MenuEffects:
             (int(render.get_width() * escala), int(render.get_height() * escala))
         )
 
-    # =================================
-    # PANEL GLASS
-    # =================================
     def dibujar_panel_glass(self, pantalla, x, y, ancho, alto, alpha=120):
         panel = pygame.Surface((ancho, alto), pygame.SRCALPHA)
         panel.fill((20, 25, 35, alpha))
         pantalla.blit(panel, (x, y))
         pygame.draw.rect(pantalla, (120, 180, 255), (x, y, ancho, alto), 2, border_radius=20)
 
-    # =================================
-    # BOTON SELECCIONADO
-    # =================================
     def dibujar_glow_boton(self, pantalla, x, y, ancho, alto):
         pulso = self.obtener_pulso(0.006)
         alpha = 60 + int(pulso * 80)
@@ -98,9 +83,6 @@ class MenuEffects:
         pantalla.blit(glow, (x - 20, y - 10))
         pygame.draw.rect(pantalla, (0, 220, 255), (x, y, ancho, alto), 2, border_radius=15)
 
-    # =================================
-    # EFECTO 1: MATRIX (Ranking)
-    # =================================
     def iniciar_matrix(self, callback):
         self.matrix_activo = True
         self.matrix_tiempo_inicio = pygame.time.get_ticks()
@@ -195,9 +177,6 @@ class MenuEffects:
 
         return False
 
-    # =================================
-    # EFECTO 2: CRISTAL - SOLO GRIETAS (Salir)
-    # =================================
     def iniciar_cristal(self, callback, pantalla_actual):
         """Solo grietas finas que aparecen, luego se cierra el juego"""
         self.cristal_activo = True
@@ -275,8 +254,5 @@ class MenuEffects:
 
         return False
 
-    # =================================
-    # VERIFICAR SI ALGUN EFECTO ESTA ACTIVO
-    # =================================
     def efecto_activo(self):
         return self.matrix_activo or self.cristal_activo
