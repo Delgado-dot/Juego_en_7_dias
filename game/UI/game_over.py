@@ -171,8 +171,62 @@ class GameOver:
 
         pygame.display.flip()
 
+    def _ease_in_out(self, t):
+        return t * t * (3 - 2 * t)
+
+    def _ease_in_cubic(self, t):
+        return t * t * t
+
+    def _dibujar_iris(self, progreso, fase_cierre=True):
+        cx = self.ancho // 2
+        cy = self.alto // 2
+        radio_max = int(((cx ** 2) + (cy ** 2)) ** 0.5) + 2
+        radio_visible = int(radio_max * (1.0 - progreso))
+
+        vignette = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        vignette.fill((0, 0, 0, 255))
+        if radio_visible > 0:
+            pygame.draw.circle(vignette, (0, 0, 0, 0), (cx, cy), radio_visible)
+        self.pantalla.blit(vignette, (0, 0))
+
+        if radio_visible > 4:
+            if fase_cierre:
+                for grosor, alpha in [(18, 40), (10, 90), (4, 200), (2, 255)]:
+                    borde = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+                    pygame.draw.circle(borde, (255, 30, 50, alpha), (cx, cy), radio_visible, grosor)
+                    self.pantalla.blit(borde, (0, 0))
+            else:
+                for grosor, alpha in [(10, 30), (4, 120), (2, 200)]:
+                    borde = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+                    pygame.draw.circle(borde, (0, 220, 255, alpha), (cx, cy), radio_visible, grosor)
+                    self.pantalla.blit(borde, (0, 0))
+
+    def transicion_entrada(self, duracion_cierre_ms=900, duracion_apertura_ms=600):
+        reloj = pygame.time.Clock()
+
+        pasos_cierre = duracion_cierre_ms // 16
+        for i in range(pasos_cierre + 1):
+            t = i / pasos_cierre
+            progreso = self._ease_in_cubic(t)
+            self.pantalla.fill((0, 0, 0))
+            self._dibujar_iris(progreso, fase_cierre=True)
+            pygame.display.flip()
+            reloj.tick(60)
+
+        pygame.time.delay(180)
+
+        pasos_apertura = duracion_apertura_ms // 16
+        for i in range(pasos_apertura + 1):
+            t = i / pasos_apertura
+            progreso = self._ease_in_out(t)
+            self.dibujar()
+            self._dibujar_iris(1.0 - progreso, fase_cierre=False)
+            pygame.display.flip()
+            reloj.tick(60)
+
     def ejecutar(self):
         reloj = pygame.time.Clock()
+        self.transicion_entrada()
 
         while True:
             for evento in pygame.event.get():

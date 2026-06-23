@@ -77,7 +77,7 @@ todas_colisiones = []
 
 
 def crear_nivel(idx):
-    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones
+    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones, sierras_cae
     nivel = Level(ANCHO, ALTO, idx)
     trampas = []
     for pos in nivel.pos_trampas:
@@ -89,7 +89,13 @@ def crear_nivel(idx):
             min_x=pos[0] - margen,
             max_x=pos[0] + margen
         ))
-    todas_colisiones = nivel.plataformas + nivel.paredes
+    sierras_cae = []
+    for pos in nivel.pos_sierras_cae:
+        sierras_cae.append(SierraCae(
+            x=pos[0], y=pos[1],
+            tamano=int(min(ANCHO, ALTO) * 0.035)
+        ))
+    todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
     tiempo_restante = nivel.tiempo_limite * 1000
     nivel_completado = False
     punto_cable_actual = nivel.punto_a
@@ -97,6 +103,7 @@ def crear_nivel(idx):
 
 def reiniciar_nivel():
     global game_over, tiempo_sin_daño, tiempo_restante, nivel_completado, punto_cable_actual
+    crear_nivel(nivel_idx)
     jugador.vidas = jugador.vidas_max
     jugador.puntaje = 0
     jugador.tiene_cable = True
@@ -167,6 +174,9 @@ def portal_transicion(cerrar=True):
         for t in trampas:
             t.dibujar(pantalla, cam_x, cam_y)
 
+        for sc in sierras_cae:
+            sc.dibujar(pantalla, cam_x, cam_y)
+
         jugador.dibujar(pantalla, cam_x, cam_y)
 
         overlay.fill((0, 0, 0, 255))
@@ -194,6 +204,15 @@ def dibujar_fondo(cam_y):
 
 def dibujar_nivel(cam_y):
     for p in nivel.plataformas:
+        r = pygame.Rect(p.x, p.y - cam_y, p.w, p.h)
+        if -p.h < r.y < ALTO + p.h:
+            if sprite_plataforma:
+                sp = pygame.transform.scale(sprite_plataforma, (p.w, p.h))
+                pantalla.blit(sp, r)
+            else:
+                pygame.draw.rect(pantalla, GRIS, r)
+    for dp in nivel.plataformas_dinamicas:
+        p = dp.obtener_colision()
         r = pygame.Rect(p.x, p.y - cam_y, p.w, p.h)
         if -p.h < r.y < ALTO + p.h:
             if sprite_plataforma:
@@ -246,6 +265,13 @@ def dibujar_nivel(cam_y):
     if nivel.pos_chaqueta:
         jx, jy = nivel.pos_chaqueta[0], nivel.pos_chaqueta[1] - cam_y
         if sprite_chaqueta:
+            tiempo = pygame.time.get_ticks()
+            pulso = (math.sin(tiempo * 0.004) + 1) / 2
+            for radio in range(45, 20, -5):
+                alpha = int(40 + pulso * 30)
+                glow = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
+                pygame.draw.circle(glow, (255, 215, 0, alpha), (radio, radio), radio)
+                pantalla.blit(glow, (jx - radio, jy - radio))
             pantalla.blit(sprite_chaqueta, (jx - 20, jy - 20))
         else:
             pygame.draw.rect(pantalla, (255, 165, 0), (jx - 15, jy - 15, 30, 30))
@@ -255,14 +281,14 @@ def dibujar_cable(cam_y):
     ax, ay = punto_cable_actual[0], punto_cable_actual[1] - cam_y
 
     if jugador.voltear:
-        mano_x = jugador.forma.left - 5
+        mano_x = jugador.forma.left - 2
     else:
-        mano_x = jugador.forma.right + 5
-    mano_y = jugador.forma.centery - cam_y - 8
+        mano_x = jugador.forma.right + 2
+    mano_y = jugador.forma.centery - cam_y + 5
 
     if jugador.tiene_cable:
         mid_x = (ax + mano_x) // 2
-        mid_y = max(ay, mano_y) + 45
+        mid_y = max(ay, mano_y) + 35
         puntos = []
         for i in range(25):
             t = i / 24
@@ -270,17 +296,17 @@ def dibujar_cable(cam_y):
             y = int((1-t)**2 * ay + 2*(1-t)*t * mid_y + t**2 * mano_y)
             puntos.append((x, y))
 
-        pygame.draw.lines(pantalla, (0, 0, 0), False, puntos, 10)
-        pygame.draw.lines(pantalla, (25, 25, 25), False, puntos, 7)
+        pygame.draw.lines(pantalla, (0, 0, 0), False, puntos, 8)
+        pygame.draw.lines(pantalla, (25, 25, 25), False, puntos, 6)
         pygame.draw.lines(pantalla, (95, 95, 95), False, puntos, 3)
         pygame.draw.lines(pantalla, (160, 160, 160), False, puntos, 1)
 
-        conector_rect = pygame.Rect(mano_x - 8, mano_y - 5, 16, 10)
-        pygame.draw.rect(pantalla, (20, 20, 20), conector_rect, border_radius=3)
-        pygame.draw.rect(pantalla, (130, 130, 130), conector_rect, 2, border_radius=3)
+        conector_rect = pygame.Rect(mano_x - 4, mano_y - 3, 8, 6)
+        pygame.draw.rect(pantalla, (30, 30, 30), conector_rect, border_radius=2)
+        pygame.draw.rect(pantalla, (100, 100, 100), conector_rect, 1, border_radius=2)
 
-        pygame.draw.circle(pantalla, (20, 20, 20), (ax, ay), 8)
-        pygame.draw.circle(pantalla, (120, 120, 120), (ax, ay), 4)
+        pygame.draw.circle(pantalla, (20, 20, 20), (ax, ay), 6)
+        pygame.draw.circle(pantalla, (100, 100, 100), (ax, ay), 3)
     else:
         w = fuente_peq.size("Cable cortado: vuelve al punto C o A")[0]
         texto("Cable cortado: vuelve al rack", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
@@ -289,6 +315,7 @@ def dibujar_cable(cam_y):
 nivel_idx = 0
 nivel = None
 trampas = []
+sierras_cae = []
 todas_colisiones = []
 tiempo_restante = 0
 nivel_completado = False
@@ -410,6 +437,12 @@ while True:
             teclas = pygame.key.get_pressed()
             estaba_en_suelo = jugador.en_suelo
             jugador.leer_teclas(teclas)
+
+            if nivel.plataformas_dinamicas:
+                for dp in nivel.plataformas_dinamicas:
+                    dp.actualizar(jugador.forma)
+                todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
+
             colisiones = todas_colisiones.copy()
 
             for pf in nivel.plataformas_fantasma:
@@ -436,6 +469,9 @@ while True:
             for t in trampas:
                 t.mover(todas_colisiones)
 
+            for sc in sierras_cae:
+                sc.actualizar(jugador.forma, todas_colisiones)
+
             for cp in nivel.checkpoints:
                 if jugador.distancia(cp) < 30:
                     punto_cable_actual = cp
@@ -451,6 +487,10 @@ while True:
                 if jugador.tiene_cable and t.corta_cable(punto_cable_actual, jugador.forma.center):
                     jugador.cortar_cable()
 
+            for sc in sierras_cae:
+                if sc.activa and jugador.tiene_cable and sc.corta_cable(punto_cable_actual, jugador.forma.center):
+                    jugador.cortar_cable()
+
             ahora = pygame.time.get_ticks()
             for t in trampas:
                 dist = math.hypot(jugador.forma.centerx - t.x, jugador.forma.centery - t.y)
@@ -461,6 +501,17 @@ while True:
                     else:
                         jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
                         tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+
+            for sc in sierras_cae:
+                if sc.activa:
+                    dist = math.hypot(jugador.forma.centerx - sc.x, jugador.forma.centery - sc.y)
+                    radio_colision = sc.tamano * 0.75
+                    if dist < radio_colision and ahora > tiempo_sin_daño:
+                        if not jugador.perder_vida():
+                            game_over = True
+                        else:
+                            jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
+                            tiempo_sin_daño = ahora + DURACION_INVENCIBLE
 
             if not nivel_completado and jugador.llego_meta(nivel.punto_b):
                 nivel_completado = True
@@ -473,7 +524,7 @@ while True:
 
                     nivel_idx = siguiente
                     crear_nivel(nivel_idx)
-                    todas_colisiones = nivel.plataformas + nivel.paredes
+                    todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
                     jugador.forma.x = nivel.punto_a[0]
                     jugador.forma.y = nivel.punto_a[1] - tam_jugador
                     jugador.vel_x = 0
@@ -509,6 +560,8 @@ while True:
             dibujar_nivel(cam_y)
             for t in trampas:
                 t.dibujar(pantalla, cam_x, cam_y)
+            for sc in sierras_cae:
+                sc.dibujar(pantalla, cam_x, cam_y)
             jugador.dibujar(pantalla, cam_x, cam_y)
             w = fuente_peq.size("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio")[0]
             texto("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio", fuente_peq, (200, 200, 200), (ANCHO // 2 - w // 2, ALTO - 35))

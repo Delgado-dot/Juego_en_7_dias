@@ -1,1 +1,4 @@
 id,puntos,fecha,personaje_id,nivel_id,chaqueta_equipada,tiempo_juego
+1,500,2026-06-22 18:39,1,5,True,00:00
+2,500,2026-06-22 19:57,2,5,True,00:00
+3,200,2026-06-22 20:07,3,3,False,00:00

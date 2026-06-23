@@ -35,11 +35,6 @@ class Menu:
         except:
             pass
 
-        pantalla.fill((10, 10, 30))
-        cargando = self.fuente_peq.render("Cargando...", True, (0, 200, 255))
-        pantalla.blit(cargando, cargando.get_rect(center=(ancho // 2, alto // 2)))
-        pygame.display.flip()
-
         try:
             MENU_X = int(ancho * 0.70)
             self.titulo_img = pygame.image.load("assets/images/HUD/Titulomenu.png").convert_alpha()
@@ -72,6 +67,56 @@ class Menu:
             video.release()
         except Exception as e:
             print(f"Error cargando video: {e}")
+
+        logo_original = None
+        try:
+            logo_original = pygame.image.load("assets/images/Logo_equipo.png").convert_alpha()
+        except:
+            logo_original = None
+
+        reloj_intro = pygame.time.Clock()
+        frames_fade_in = 10
+        frames_estatico = 15
+        frames_fade_out = 10
+        duracion_total = frames_fade_in + frames_estatico + frames_fade_out
+        escala_min = 0.35
+        escala_max = 0.5
+        frame_actual = 0
+
+        while frame_actual < duracion_total:
+            pantalla.fill((0, 0, 0))
+
+            if frame_actual < frames_fade_in:
+                fase = frame_actual / frames_fade_in
+                alpha = int(fase * 255)
+                escala = escala_min + (escala_max - escala_min) * fase
+            elif frame_actual < frames_fade_in + frames_estatico:
+                alpha = 255
+                escala = escala_max
+            else:
+                fase = (frame_actual - frames_fade_in - frames_estatico) / frames_fade_out
+                alpha = int((1 - fase) * 255)
+                escala = escala_max - (escala_max - escala_min) * fase
+
+            alpha = max(0, min(255, alpha))
+
+            if logo_original:
+                new_w = int(logo_original.get_width() * escala)
+                new_h = int(logo_original.get_height() * escala)
+                logo_scaled = pygame.transform.smoothscale(logo_original, (new_w, new_h))
+                logo_scaled.set_alpha(alpha)
+                pantalla.blit(logo_scaled, logo_scaled.get_rect(center=(ancho // 2, alto // 2)))
+            else:
+                texto_render = self.fuente_peq.render("SEGUNDO SEMESTRE", True, (255, 255, 255))
+                new_w = int(texto_render.get_width() * escala)
+                new_h = int(texto_render.get_height() * escala)
+                texto_scaled = pygame.transform.smoothscale(texto_render, (new_w, new_h))
+                texto_scaled.set_alpha(alpha)
+                pantalla.blit(texto_scaled, texto_scaled.get_rect(center=(ancho // 2, alto // 2)))
+
+            pygame.display.flip()
+            reloj_intro.tick(60)
+            frame_actual += 1
 
     def avanzar_video(self):
         if not self.frames_video:
