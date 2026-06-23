@@ -9,6 +9,16 @@ from game.UI.game_over import *
 from game.UI.victoria import *
 from config import *
 
+def reproducir_musica_nivel(idx):
+    if idx < len(MUSICA_NIVELES):
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(MUSICA_NIVELES[idx])
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+        except:
+            pass
+
 pygame.init()
 pygame.mixer.init()
 
@@ -65,13 +75,6 @@ try:
 except:
     sprite_pared = None
 
-try:
-    pygame.mixer.music.load(MUSICA_JUEGO)
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)
-except:
-    pass
-
 tam_jugador = 64
 todas_colisiones = []
 
@@ -99,6 +102,7 @@ def crear_nivel(idx):
     tiempo_restante = nivel.tiempo_limite * 1000
     nivel_completado = False
     punto_cable_actual = nivel.punto_a
+    reproducir_musica_nivel(idx)
 
 
 def reiniciar_nivel():
@@ -384,13 +388,6 @@ while True:
         pygame.quit()
         sys.exit()
 
-    try:
-        pygame.mixer.music.load(MUSICA_JUEGO)
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
-    except:
-        pass
-
     reiniciar_juego()
 
     portal_transicion(False)
@@ -542,11 +539,6 @@ while True:
             resultado = go.ejecutar()
             if resultado == "reintentar":
                 reiniciar_nivel()
-                try:
-                    pygame.mixer.music.load(MUSICA_JUEGO)
-                    pygame.mixer.music.play(-1)
-                except:
-                    pass
             elif resultado == "menu":
                 jugando = False
         elif victoria_final:

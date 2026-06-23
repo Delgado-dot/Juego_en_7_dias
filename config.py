@@ -41,6 +41,13 @@ FUENTE_HUD = os.path.join(RUTA_FUENTES, "PressStart2P-Regular.ttf")
 
 MUSICA_JUEGO = os.path.join(RUTA_SONIDOS, "musica_juego.mp3")
 MUSICA_MENU = os.path.join(RUTA_SONIDOS, "musica_menu.mp3")
+MUSICA_NIVELES = [
+    os.path.join(RUTA_SONIDOS, "LVL1.mp3"),
+    os.path.join(RUTA_SONIDOS, "LVL 2.mp3"),
+    os.path.join(RUTA_SONIDOS, "LVL 3.mp3"),
+    os.path.join(RUTA_SONIDOS, "LVL 4.mp3"),
+    os.path.join(RUTA_SONIDOS, "LVL 5.mp3"),
+]
 SONIDO_CABLE_CORTADO = os.path.join(RUTA_SONIDOS, "cable_cortado.mp3")
 SONIDO_PERDER_VIDA = os.path.join(RUTA_SONIDOS, "perder_vida.mp3")
 SONIDO_GANAR = os.path.join(RUTA_SONIDOS, "sonido_victoria.mp3")

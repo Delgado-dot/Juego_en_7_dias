@@ -130,12 +130,12 @@ class Victoria:
             2,
             border_radius=20
         )
-
+        panel_y= int(self.alto * 0.32)
         self.pantalla.blit(
             panel,
             (
                 self.ancho // 2 - panel_w // 2,
-                int(self.alto * 0.38)
+                panel_y
             )
         )
 
@@ -147,7 +147,7 @@ class Victoria:
 
         self.pantalla.blit(
             pts,
-            pts.get_rect(center=(self.ancho // 2, int(self.alto * 0.38) + 60))
+            pts.get_rect(center=(self.ancho // 2, panel_y + panel_h // 2))
         )
 
     # =========================
@@ -163,18 +163,21 @@ class Victoria:
 
                 glow_alpha = 60 + int(pulso_sel * 90)
 
-                glow = pygame.Surface((420, 75), pygame.SRCALPHA)
+                glow_w = 550
+                glow_h = 75
+
+                glow = pygame.Surface((glow_w, glow_h), pygame.SRCALPHA)
 
                 pygame.draw.rect(
                     glow,
                     (0, 255, 150, glow_alpha),
-                    (0, 0, 420, 75),
+                    (0, 0, glow_w, glow_h),
                     border_radius=20
                 )
 
                 self.pantalla.blit(
                     glow,
-                    (self.ancho // 2 - 210, y - 37)
+                    (self.ancho // 2 - glow_w // 2, y - glow_h // 2)
                 )
 
                 texto = self.fuente_menu.render(
