@@ -31,6 +31,9 @@ SPRITE_ENEMIGO = os.path.join(RUTA_SPRITES, "enemigo.png")
 SPRITE_FONDO = os.path.join(RUTA_IMAGENES, "Fondo1.png")
 SPRITE_PLATAFORMA = os.path.join(RUTA_SPRITES, "plataforma.png")
 
+VIDEO_GAME_OVER = os.path.join(BASE_DIR, "assets", "images", "HUD", "game_over_fondo.mp4")
+VIDEO_VICTORIA = os.path.join(BASE_DIR, "assets", "images", "HUD", "victoria.mp4")
+
 SPRITE_CORAZON_LLENO = os.path.join(RUTA_IMAGENES, "HUD", "dark blue heart pixel art.png")
 SPRITE_CORAZON_VACIO = os.path.join(RUTA_IMAGENES, "HUD", "dark black heart pixel art.png")
 SPRITE_CHAQUETA = os.path.join(RUTA_IMAGENES, "HUD", "chaqueta.png")

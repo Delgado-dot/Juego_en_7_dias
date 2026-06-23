@@ -1,8 +1,10 @@
 import pygame
+import cv2
 import sys
 from datetime import datetime
 from db.database_manager import crear_jugador, crear_personaje, guardar_puntaje
 from game.UI.input_nombre import InputNombre
+from config import VIDEO_GAME_OVER
 
 
 class GameOver:
@@ -15,6 +17,9 @@ class GameOver:
         self.chaquetas = chaquetas
         self.opcion = 0
         self.opciones = ["Guardar y reintentar", "Reintentar", "Volver al menú", "Salir"]
+        self.video = cv2.VideoCapture(VIDEO_GAME_OVER)
+        self.ultimo_frame_video = None
+        self.video_terminado = False
 
         try:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 58)
@@ -73,8 +78,18 @@ class GameOver:
         self.pantalla.blit(render, rect)
 
     def dibujar(self):
-        if self.fondo:
-            self.pantalla.blit(self.fondo, (0, 0))
+        if not self.video_terminado:
+            ret, frame = self.video.read()
+            if not ret:
+                self.video_terminado = True
+            else:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
+                frame = pygame.transform.scale(frame, (self.ancho, self.alto))
+                self.ultimo_frame_video = frame
+
+        if self.ultimo_frame_video:
+            self.pantalla.blit(self.ultimo_frame_video, (0, 0))
         else:
             self.pantalla.fill((15, 0, 10))
 

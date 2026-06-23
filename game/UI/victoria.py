@@ -1,9 +1,11 @@
 import pygame
+import cv2
 import sys
 from datetime import datetime
 from db.database_manager import crear_jugador, crear_personaje, guardar_puntaje
 from game.UI.input_nombre import InputNombre
 import math
+from config import VIDEO_VICTORIA
 
 class Victoria:
     def __init__(self, pantalla, ancho, alto, puntaje, nivel_llegado=1, chaquetas=0):
@@ -15,6 +17,11 @@ class Victoria:
         self.chaquetas = chaquetas
         self.opcion = 0
         self.opciones = ["Guardar puntaje", "Volver al menú", "Salir"]
+        self.video = cv2.VideoCapture(VIDEO_VICTORIA)
+        self.ultimo_frame_video = None
+        self.video_terminado = False
+        self.fade_alpha = 0
+        self.fade_activo = False
 
         try:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 60)
@@ -57,13 +64,25 @@ class Victoria:
     # =========================
     # FONDO + OVERLAY
     # =========================
-        if self.fondo:
-            self.pantalla.blit(self.fondo, (0, 0))
+        if not self.video_terminado:
+            ret, frame = self.video.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame = cv2.resize(frame, (self.ancho, self.alto))
+                self.ultimo_frame_video = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
+                self.pantalla.blit(self.ultimo_frame_video, (0, 0))
+            else:
+                self.video_terminado = True
+                self.fade_activo = True
         else:
-            self.pantalla.fill((0, 20, 0))
+            if self.ultimo_frame_video:
+                self.pantalla.blit(self.ultimo_frame_video, (0, 0))
 
         overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 140))
+        alpha = 140
+        if self.fade_activo:
+            alpha = min(140 + self.fade_alpha, 255)
+        overlay.fill((0, 0, 0, alpha))
         self.pantalla.blit(overlay, (0, 0))
 
         tiempo = pygame.time.get_ticks()
@@ -209,6 +228,11 @@ class Victoria:
         )
 
         pygame.display.flip()
+
+        if self.fade_activo:
+            self.fade_alpha += 2
+            if self.fade_alpha > 255:
+                self.fade_alpha = 255
 
     def _ease_in_out(self, t):
         return t * t * (3 - 2 * t)
