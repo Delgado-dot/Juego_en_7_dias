@@ -75,9 +75,9 @@ class Menu:
             logo_original = None
 
         reloj_intro = pygame.time.Clock()
-        frames_fade_in = 10
-        frames_estatico = 15
-        frames_fade_out = 10
+        frames_fade_in = 25
+        frames_estatico = 35
+        frames_fade_out = 25
         duracion_total = frames_fade_in + frames_estatico + frames_fade_out
         escala_min = 0.35
         escala_max = 0.5
@@ -252,8 +252,6 @@ class Menu:
                     texto = self.fuente_menu.render(op, True, (200, 200, 200))
                 self.pantalla.blit(texto, texto.get_rect(center=(self.ancho // 2, y)))
 
-        controles = self.fuente_peq.render("W/S o Flechas  |  ENTER", True, (180, 180, 180))
-        self.pantalla.blit(controles, controles.get_rect(center=(self.ancho // 2, self.alto - 40)))
         pygame.display.flip()
 
     def ejecutar(self):

@@ -5,7 +5,7 @@ from Entidades import PlataformaFantasma, SierraCae
 tamaño_mapa = 70
 
 
-NIVEL_DINAMICO_DESDE = 2
+NIVEL_DINAMICO_DESDE = 0
 
 
 class PlataformaDinamica:
@@ -79,7 +79,7 @@ class PlataformaDinamica:
 NIVELES = [
 
 {
-    "tiempo": 170,
+    "tiempo": 60,
     "mapa": [
         "####################",
         "$              R   $",
@@ -102,7 +102,7 @@ NIVELES = [
 },
 
 {
-    "tiempo": 160,
+    "tiempo": 60,
     "mapa": [
         "####################",
         "$        R         $",
@@ -125,7 +125,7 @@ NIVELES = [
 },
 
 {
-    "tiempo": 150,
+    "tiempo": 60,
     "mapa": [
         "####################",
         "$             R    $",
@@ -148,7 +148,7 @@ NIVELES = [
 },
 
 {
-    "tiempo": 140,
+    "tiempo": 60,
     "mapa": [
         "####################",
         "$      R           $",
@@ -165,13 +165,13 @@ NIVELES = [
         "$         #J       $",
         "$                  $",
         "$  V %%%#    E     $",
-        "$A              R  $",
+        "$A                 $",
         "####################"
     ]
 },
 
 {
-    "tiempo": 130,
+    "tiempo": 60,
     "mapa": [
         "####################",
         "$              R   $",
@@ -188,7 +188,7 @@ NIVELES = [
         "$          J       $",
         "$                  $",
         "$   ####      E    $",
-        "$A               R $",
+        "$A                 $",
         "####################"
     ]
 }
