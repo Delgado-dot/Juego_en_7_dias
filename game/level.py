@@ -97,7 +97,7 @@ NIVELES = [
         "$    #             $",
         "$                  $",
         "$A                 $",
-        "##                 #"
+        "##  EEEEEEEEEEEEEEE#"
     ]
 },
 {

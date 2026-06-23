@@ -112,6 +112,9 @@ def reiniciar_nivel():
     jugador.puntaje = 0
     jugador.tiene_cable = True
     jugador.chaquetas = 0
+    jugador.chaqueta_cohete = False
+    jugador.modo_cohete = False
+    jugador.cohete_tiempo = 0
     jugador.forma.x = nivel.punto_a[0]
     jugador.forma.y = nivel.punto_a[1] - tam_jugador
     jugador.vel_x = 0
@@ -141,6 +144,9 @@ def reiniciar_juego():
     jugador.puntaje = 0
     jugador.tiene_cable = True
     jugador.chaquetas = 0
+    jugador.chaqueta_cohete = False
+    jugador.modo_cohete = False
+    jugador.cohete_tiempo = 0
     jugador.forma.x = nivel.punto_a[0]
     jugador.forma.y = nivel.punto_a[1] - tam_jugador
     jugador.vel_x = 0
@@ -432,6 +438,9 @@ while True:
                 game_over = True
 
             teclas = pygame.key.get_pressed()
+            jugador.activar_cohete(teclas[pygame.K_SPACE])
+            if teclas[pygame.K_SPACE]:
+                print(f"[COHETE] space pressed | chaq={jugador.chaqueta_cohete} modo={jugador.modo_cohete} vel_y={jugador.vel_y:.2f}")
             estaba_en_suelo = jugador.en_suelo
             jugador.leer_teclas(teclas)
 
@@ -447,6 +456,9 @@ while True:
                     colisiones.append(pf.rect)
 
             jugador.actualizar(colisiones, ANCHO, nivel.alto_total)
+            if jugador.modo_cohete and jugador.chaqueta_cohete:
+                if pygame.time.get_ticks() % 2 == 0:
+                    jugador.spawn_particula()
 
             for pf in nivel.plataformas_fantasma:
                 if pf.desaparecida:
@@ -474,8 +486,12 @@ while True:
                     punto_cable_actual = cp
 
             if nivel.pos_chaqueta:
-                if jugador.distancia(nivel.pos_chaqueta) < 30:
+                dist_chaq = jugador.distancia(nivel.pos_chaqueta)
+                if dist_chaq < 50:
+                    print(f"[COHETE] Recogida! dist={dist_chaq:.1f}")
                     jugador.chaquetas += 1
+                    jugador.chaqueta_cohete = True
+                    jugador.cohete_tiempo = 0
                     nivel.pos_chaqueta = None
 
             jugador.recuperar_cable(punto_cable_actual)

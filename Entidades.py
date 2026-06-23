@@ -92,7 +92,40 @@ class Personaje(EntidadJuego):
         self.puntaje = 0
         self.puntos_cable = 100
         self.chaquetas = 0
+        self.chaqueta_cohete = False
+        self.modo_cohete = False
+        self.energia_cohete = 0
+        self.max_energia_cohete = 100
+        self.cohete_tiempo = 0
+        self.duracion_cohete = 1500
+        self.particulas = []
+        self.generar_particulas = False
 
+    def spawn_particula(self):
+        x = self.forma.centerx + (5 if not self.voltear else -5)
+        y = self.forma.centery
+
+        self.particulas.append([
+            x, y,
+            (255, 200, 50),  # color
+            5,               # tamaño
+            -self.vel_x * 0.3,
+            1.5              # velocidad fade
+        ])
+    def actualizar_particulas(self, pantalla, cam_x, cam_y):
+        for p in self.particulas[:]:
+            p[0] += p[4]
+            p[3] -= 0.1  # se encoge
+
+            pygame.draw.circle(
+                pantalla,
+                p[2],
+                (int(p[0] - cam_x), int(p[1] - cam_y)),
+                max(1, int(p[3]))
+            )
+
+            if p[3] <= 0:
+                self.particulas.remove(p)
     def leer_teclas(self, teclas):
         self.vel_x = 0
 
@@ -104,17 +137,22 @@ class Personaje(EntidadJuego):
             self.vel_x = self.velocidad
             self.voltear = False
 
-        if (teclas[pygame.K_w] or teclas[pygame.K_UP] or teclas[pygame.K_SPACE]) and self.en_suelo:
-            self.vel_y = self.fuerza_salto
-            self.en_suelo = False
+        if teclas[pygame.K_UP] or teclas[pygame.K_w]:
+            if self.en_suelo:
+                self.vel_y = self.fuerza_salto
+                self.en_suelo = False
 
     def aplicar_gravedad(self):
-        if self.chaquetas > 0 and self.vel_y > 0:
-            gravedad_real = self.gravedad * 0.3
+        if self.modo_cohete and self.chaqueta_cohete:
+            # En modo cohete: la gravedad se anula mientras se pulsa espacio,
+            # se aplica solo cuando se suelta la tecla.
+            if self.vel_y < 0:
+                self.vel_y += self.gravedad * 0.1
+            else:
+                self.vel_y += self.gravedad * 0.5
         else:
-            gravedad_real = self.gravedad
+            self.vel_y += self.gravedad
 
-        self.vel_y += gravedad_real
         self.forma.y += int(self.vel_y)
 
     def mover_x(self, plataformas):
@@ -163,6 +201,7 @@ class Personaje(EntidadJuego):
             self.vel_y = 0
             self.en_suelo = True
 
+         # impulso constante tipo cohete
     def distancia(self, punto):
         cx, cy = self.forma.center
         return ((cx - punto[0]) ** 2 + (cy - punto[1]) ** 2) ** 0.5
@@ -177,6 +216,8 @@ class Personaje(EntidadJuego):
     def perder_vida(self):
         self.vidas -= 1
         self.tiene_cable = False
+        # No limpiamos el cohete: si el jugador lo recogió, lo conserva.
+        # (El power-up se consume por tiempo en activar_cohete, no por muerte.)
 
         if self.chaquetas > 0:
             self.chaquetas -= 1
@@ -211,7 +252,42 @@ class Personaje(EntidadJuego):
         y = self.forma.bottom - nuevo_alto + self.AJUSTE_PIES - cam_y
 
         pantalla.blit(img, (x, y))
+        self.actualizar_particulas(pantalla, cam_x, cam_y)
+    def activar_cohete(self, tecla_space):
+        # Si no tiene el power-up, salir del modo cohete
+        if not self.chaqueta_cohete:
+            if self.modo_cohete:
+                self.modo_cohete = False
+                self.generar_particulas = False
+            return
 
+        # Iniciar temporizador la primera vez
+        if self.cohete_tiempo == 0 and tecla_space:
+            self.cohete_tiempo = pygame.time.get_ticks()
+
+        # Si el power-up expiró, desactivarlo
+        if self.cohete_tiempo > 0:
+            ahora = pygame.time.get_ticks()
+            if ahora - self.cohete_tiempo >= self.duracion_cohete:
+                self.chaqueta_cohete = False
+                self.modo_cohete = False
+                self.generar_particulas = False
+                self.cohete_tiempo = 0
+                return
+
+        # Mientras se mantenga la barra espaciadora, impulso hacia arriba
+        if tecla_space:
+            if not self.modo_cohete:
+                # Impulso inicial fuerte al activar
+                self.vel_y = -14
+                self.modo_cohete = True
+            else:
+                # Impulso continuo (sustituye a la gravedad)
+                self.vel_y = -10
+            self.generar_particulas = True
+        else:
+            self.modo_cohete = False
+            self.generar_particulas = False
 
 class Trampa(EntidadJuego):
     def __init__(self, x, y, tamano=35, velocidad=3, min_x=0, max_x=100):
@@ -416,3 +492,199 @@ class PlataformaFantasma:
 
     def es_solida(self):
         return not self.desaparecida
+
+class EnemigoPatrulla(EntidadJuego):
+    def __init__(self, x, y, ancho_plataforma,
+                 velocidad=2, tamano=40):
+
+        super().__init__(tamano)
+
+        self.forma = pygame.Rect(x, y, tamano, tamano)
+
+        self.velocidad = velocidad
+
+        self.min_x = x
+        self.max_x = x + ancho_plataforma - tamano
+
+        try:
+            self.imagen = pygame.image.load(
+                "assets/images/enemigo.png"
+            ).convert_alpha()
+
+            self.imagen = pygame.transform.scale(
+                self.imagen,
+                (tamano, tamano)
+            )
+        except:
+            self.imagen = None
+
+    def actualizar(self):
+        self.forma.x += self.velocidad
+
+        if self.forma.left <= self.min_x:
+            self.forma.left = self.min_x
+            self.velocidad *= -1
+            self.voltear = False
+
+        elif self.forma.right >= self.max_x:
+            self.forma.right = self.max_x
+            self.velocidad *= -1
+            self.voltear = True
+
+    def toca_jugador(self, jugador):
+        return self.forma.colliderect(jugador.forma)
+    
+class EnemigoEmergente(EntidadJuego):
+
+    def __init__(self, x, y, altura_subida=80,
+                 velocidad=2, tamano=40):
+
+        super().__init__(tamano)
+
+        self.forma = pygame.Rect(
+            x,
+            y,
+            tamano,
+            tamano
+        )
+
+        self.y_base = y
+        self.y_arriba = y - altura_subida
+
+        self.velocidad = velocidad
+
+        self.estado = "subiendo"
+
+        self.tiempo_estado = pygame.time.get_ticks()
+
+        try:
+            self.imagen = pygame.image.load(
+                "assets/images/planta.png"
+            ).convert_alpha()
+
+            self.imagen = pygame.transform.scale(
+                self.imagen,
+                (tamano, tamano)
+            )
+
+        except:
+            self.imagen = None
+
+    def actualizar(self):
+
+        ahora = pygame.time.get_ticks()
+
+        if self.estado == "subiendo":
+
+            self.forma.y -= self.velocidad
+
+            if self.forma.y <= self.y_arriba:
+                self.forma.y = self.y_arriba
+                self.estado = "espera_arriba"
+                self.tiempo_estado = ahora
+
+        elif self.estado == "espera_arriba":
+
+            if ahora - self.tiempo_estado > 2000:
+                self.estado = "bajando"
+
+        elif self.estado == "bajando":
+
+            self.forma.y += self.velocidad
+
+            if self.forma.y >= self.y_base:
+                self.forma.y = self.y_base
+                self.estado = "espera_abajo"
+                self.tiempo_estado = ahora
+
+        elif self.estado == "espera_abajo":
+
+            if ahora - self.tiempo_estado > 2000:
+                self.estado = "subiendo"
+
+    def toca_jugador(self, jugador):
+        return self.forma.colliderect(jugador.forma)
+    
+class ChaquetaCohete:
+    def __init__(self, x, y, duracion=2500):
+        self.x = x
+        self.y = y
+        self.radio = 20
+        self.activa = True
+
+        # estado power-up
+        self.recogida = False
+        self.activada = False
+
+        self.duracion = duracion
+        self.tiempo_inicio = 0
+
+        try:
+            self.imagen = pygame.image.load(
+                "assets/images/chaqueta_item.png"
+            ).convert_alpha()
+            self.imagen = pygame.transform.scale(self.imagen, (40, 40))
+        except:
+            self.imagen = None
+
+    def recoger(self, jugador):
+        if not self.activa:
+            return
+
+        dist = math.hypot(
+            jugador.forma.centerx - self.x,
+            jugador.forma.centery - self.y
+        )
+
+        if dist < self.radio + 20:
+            self.recogida = True
+            self.activa = False
+            jugador.chaqueta_cohete = True  # nuevo estado en jugador
+
+    def activar(self, jugador):
+        if not jugador.chaqueta_cohete:
+            return
+
+        self.activada = True
+        self.tiempo_inicio = pygame.time.get_ticks()
+
+        # efecto inicial fuerte
+        jugador.vel_y = -18  # impulso hacia arriba
+        jugador.vel_x *= 1.5  # boost horizontal
+
+    def actualizar(self, jugador):
+        if not self.activada:
+            return
+
+        ahora = pygame.time.get_ticks()
+
+    # SOLO impulso momentáneo (no afecta gravedad base)
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_SPACE]:
+            jugador.vel_y = -12  # impulso hacia arriba fuerte
+        else:
+        # no forzamos caída lenta, dejamos la gravedad normal actuar
+            pass
+
+        if ahora - self.tiempo_inicio >= self.duracion:
+            self.activada = False
+            jugador.chaqueta_cohete = False
+            jugador.cohete_activo = False
+
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if not self.activa:
+            return
+
+        if self.imagen:
+            pantalla.blit(
+                self.imagen,
+                (self.x - cam_x, self.y - cam_y)
+            )
+        else:
+            pygame.draw.circle(
+                pantalla,
+                (255, 200, 0),
+                (int(self.x - cam_x), int(self.y - cam_y)),
+                self.radio
+            )
