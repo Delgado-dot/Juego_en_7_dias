@@ -52,6 +52,7 @@ SONIDO_CABLE_CORTADO = os.path.join(RUTA_SONIDOS, "cable_cortado.mp3")
 SONIDO_PERDER_VIDA = os.path.join(RUTA_SONIDOS, "perder_vida.mp3")
 SONIDO_GANAR = os.path.join(RUTA_SONIDOS, "sonido_victoria.mp3")
 SONIDO_RECOGER_ITEM = os.path.join(RUTA_SONIDOS, "recoger_item.mp3")
+SONIDO_MUERTE = os.path.join(RUTA_SONIDOS, "sonido_muerte.mp3")
 sonido_game_over = os.path.join(RUTA_SONIDOS, "musica_gameover.mp3")
 VELOCIDAD_JUGADOR = 5
 GRAVEDAD = 0.6

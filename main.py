@@ -7,6 +7,9 @@ from game.level import Level, NIVELES
 from game.UI.menu import *
 from game.UI.game_over import *
 from game.UI.victoria import *
+from game.UI.intro import Introduccion
+from game.UI.pause import MenuPausa
+from historia import Historia
 from config import *
 
 def reproducir_musica_nivel(idx):
@@ -14,10 +17,20 @@ def reproducir_musica_nivel(idx):
         try:
             pygame.mixer.music.stop()
             pygame.mixer.music.load(MUSICA_NIVELES[idx])
-            pygame.mixer.music.set_volume(0.5)
+            volumen = menu.panel_config.config.get("vol_musica", 0.5)
+            pygame.mixer.music.set_volume(volumen)
             pygame.mixer.music.play(-1)
         except:
             pass
+
+def reproducir_sonido_daño():
+    try:
+        volumen = menu.panel_config.config.get("vol_efectos", 0.7)
+        sonido = pygame.mixer.Sound(SONIDO_MUERTE)
+        sonido.set_volume(volumen)
+        sonido.play()
+    except:
+        pass
 
 pygame.init()
 pygame.mixer.init()
@@ -28,6 +41,7 @@ ALTO = info.current_h
 
 pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.FULLSCREEN)
 pygame.display.set_caption(TITULO)
+fullscreen_actual = True
 
 reloj = pygame.time.Clock()
 
@@ -80,7 +94,7 @@ todas_colisiones = []
 
 
 def crear_nivel(idx):
-    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones, sierras_cae
+    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones, sierras_cae, enemigos, proyectiles_enemigos
     nivel = Level(ANCHO, ALTO, idx)
     trampas = []
     for pos in nivel.pos_trampas:
@@ -98,6 +112,27 @@ def crear_nivel(idx):
             x=pos[0], y=pos[1],
             tamano=int(min(ANCHO, ALTO) * 0.035)
         ))
+    enemigos = []
+    proyectiles_enemigos = []
+
+    for pos in nivel.pos_enemigos:
+        plataforma_encontrada = None
+        for p in nivel.plataformas:
+            if (
+                pos[0] >= p.left and
+                pos[0] <= p.right and
+                pos[1] <= p.top + 80
+            ):
+                plataforma_encontrada = p
+                break
+
+        if plataforma_encontrada:
+            enemigos.append(
+                EnemigoPatrulla(
+                    pos[0],
+                    plataforma_encontrada.top - 40,
+                    plataforma_encontrada))
+        
     todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
     tiempo_restante = nivel.tiempo_limite * 1000
     nivel_completado = False
@@ -324,6 +359,8 @@ def dibujar_cable(cam_y):
 
 nivel_idx = 0
 nivel = None
+enemigos = []
+proyectiles_enemigos = []
 trampas = []
 sierras_cae = []
 todas_colisiones = []
@@ -394,6 +431,17 @@ while True:
         pygame.quit()
         sys.exit()
 
+    pantalla, ANCHO, ALTO, fullscreen_actual = menu.panel_config.aplicar_cambios(
+        pantalla, ANCHO, ALTO, fullscreen_actual
+    )
+    menu.panel_config.actualizar_dimensiones(ANCHO, ALTO)
+
+    historia = Historia(pantalla, ANCHO, ALTO)
+    historia.ejecutar()
+
+    intro = Introduccion(pantalla, ANCHO, ALTO, menu.panel_config.config)
+    intro.ejecutar()
+
     reiniciar_juego()
 
     portal_transicion(False)
@@ -406,7 +454,41 @@ while True:
                 sys.exit()
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
-                    jugando = False
+                    cam_x, cam_y = camara()
+                    dibujar_fondo(cam_y)
+                    dibujar_cable(cam_y)
+                    dibujar_nivel(cam_y)
+                    for t in trampas:
+                        t.dibujar(pantalla, cam_x, cam_y)
+                    for sc in sierras_cae:
+                        sc.dibujar(pantalla, cam_x, cam_y)
+                    jugador.dibujar(pantalla, cam_x, cam_y)
+                    hud.draw(pantalla, jugador.vidas, jugador.vidas_max,
+                             jugador.chaquetas, tiempo_restante)
+                    pygame.display.flip()
+
+                    try:
+                        pygame.mixer.music.pause()
+                    except:
+                        pass
+
+                    pausa = MenuPausa(pantalla, ANCHO, ALTO, menu.panel_config.config)
+                    resultado_pausa = pausa.ejecutar()
+
+                    try:
+                        pygame.mixer.music.unpause()
+                    except:
+                        pass
+
+                    if resultado_pausa == "reanudar":
+                        ultimo_frame = pygame.time.get_ticks()
+                        continue
+                    elif resultado_pausa == "reiniciar":
+                        reiniciar_nivel()
+                        ultimo_frame = pygame.time.get_ticks()
+                        continue
+                    elif resultado_pausa == "menu":
+                        jugando = False
 
         cam_x, cam_y = camara()
         ahora = pygame.time.get_ticks()
@@ -456,6 +538,15 @@ while True:
                     colisiones.append(pf.rect)
 
             jugador.actualizar(colisiones, ANCHO, nivel.alto_total)
+
+            if jugador.forma.top > nivel.alto_total + 200:
+                reproducir_sonido_daño()
+                if not jugador.perder_vida():
+                    game_over = True
+                else:
+                    jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
+                    tiempo_sin_daño = pygame.time.get_ticks() + DURACION_INVENCIBLE
+
             if jugador.modo_cohete and jugador.chaqueta_cohete:
                 if pygame.time.get_ticks() % 2 == 0:
                     jugador.spawn_particula()
@@ -477,6 +568,36 @@ while True:
 
             for t in trampas:
                 t.mover(todas_colisiones)
+                
+            for e in enemigos:
+                e.actualizar(jugador)
+                nuevos = e.intentar_disparar(jugador, ahora)
+                proyectiles_enemigos.extend(nuevos)
+
+            for p in proyectiles_enemigos:
+                p.actualizar()
+
+            proyectiles_enemigos = [
+                p for p in proyectiles_enemigos
+                if p.forma.right > 0 and p.forma.left < ANCHO
+                and p.forma.bottom > 0 and p.forma.top < nivel.alto_total
+            ]
+
+            for p in proyectiles_enemigos:
+                if p.forma.colliderect(jugador.forma):
+                    if ahora > tiempo_sin_daño:
+                        p.activo = False
+                        reproducir_sonido_daño()
+                        if not jugador.perder_vida():
+                            game_over = True
+                        else:
+                            jugador.reiniciar_pos(
+                                punto_cable_actual[0],
+                                punto_cable_actual[1] - tam_jugador
+                            )
+                            tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+
+            proyectiles_enemigos = [p for p in proyectiles_enemigos if p.activo]
 
             for sc in sierras_cae:
                 sc.actualizar(jugador.forma, todas_colisiones)
@@ -509,6 +630,7 @@ while True:
                 dist = math.hypot(jugador.forma.centerx - t.x, jugador.forma.centery - t.y)
                 radio_colision = t.tamano * 0.75
                 if dist < radio_colision and ahora > tiempo_sin_daño:
+                    reproducir_sonido_daño()
                     if not jugador.perder_vida():
                         game_over = True
                     else:
@@ -520,11 +642,25 @@ while True:
                     dist = math.hypot(jugador.forma.centerx - sc.x, jugador.forma.centery - sc.y)
                     radio_colision = sc.tamano * 0.75
                     if dist < radio_colision and ahora > tiempo_sin_daño:
+                        reproducir_sonido_daño()
                         if not jugador.perder_vida():
                             game_over = True
                         else:
                             jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
                             tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+            for e in enemigos:
+                if e.forma.colliderect(jugador.forma):
+                    if ahora > tiempo_sin_daño:
+                        reproducir_sonido_daño()
+                        if not jugador.perder_vida():
+                            game_over = True
+                        else:
+                            jugador.reiniciar_pos(
+                            punto_cable_actual[0],
+                            punto_cable_actual[1] - tam_jugador
+                            )
+                            tiempo_sin_daño = (
+                            ahora + DURACION_INVENCIBLE)
 
             if not nivel_completado and jugador.llego_meta(nivel.punto_b):
                 nivel_completado = True
@@ -568,6 +704,10 @@ while True:
             dibujar_nivel(cam_y)
             for t in trampas:
                 t.dibujar(pantalla, cam_x, cam_y)
+            for e in enemigos:
+                e.dibujar(pantalla,cam_x,cam_y)
+            for p in proyectiles_enemigos:
+                p.dibujar(pantalla, cam_x, cam_y)
             for sc in sierras_cae:
                 sc.dibujar(pantalla, cam_x, cam_y)
             jugador.dibujar(pantalla, cam_x, cam_y)

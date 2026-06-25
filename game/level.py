@@ -1,6 +1,6 @@
 import pygame
 from config import *
-from Entidades import PlataformaFantasma, SierraCae
+from Entidades import *
 
 tamaño_mapa = 70
 
@@ -86,8 +86,7 @@ NIVELES = [
         "$      # V         $",
         "$                  $",
         "$     #       #    $",
-        "$                  $",
-        "$                  $",
+        "$        M         $",
         "$        ##  ##    $",
         "$     #            $",
         "$                  $",
@@ -202,6 +201,7 @@ class Level:
         self.punto_a = (0, 0)
         self.punto_b = (0, 0)
         self.pos_trampas = []
+        self.pos_enemigos = []
         self.checkpoints = []
         self.plataformas_fantasma = []
         self.plataformas_dinamicas = []
@@ -219,8 +219,8 @@ class Level:
         self.tile_w = ancho // self.columnas
         self.tile_h = tamaño_mapa
         self.alto_total = self.filas * self.tile_h
-
         self._cargar()
+        print("enemigos cargados:",self.pos_enemigos)
         if numero >= NIVEL_DINAMICO_DESDE:
             self._generar_dinamicas()
 
@@ -275,6 +275,11 @@ class Level:
                     self.pos_sierras_cae.append(
                         (x + self.tile_w // 2, y + self.tile_h // 2)
                     )
+                elif tile == "M":
+                    self.pos_enemigos.append(
+                        (
+                            x + self.tile_w // 2,
+                            y + self.tile_h // 2))
 
     def _generar_dinamicas(self):
         import random

@@ -20,20 +20,21 @@ class EntidadJuego:
         return False
 
     def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        OFFSET_Y = -27
+    
         if self.imagen is None:
+        
+            rect_temporal = pygame.Rect(self.forma.x - cam_x, self.forma.y - cam_y - OFFSET_Y, self.tamano, self.tamano)
+            pygame.draw.rect(pantalla, (255, 0, 0), rect_temporal)
             return
 
         img = pygame.transform.flip(self.imagen, self.voltear, False)
-        OFFSET_Y = -27
-
         pantalla.blit(
             img,
             (
                 self.forma.x - cam_x,
                 self.forma.y - cam_y - OFFSET_Y
-            )
-        )
-
+                ) )
 
 class Personaje(EntidadJuego):
     AJUSTE_PIES = 40
@@ -144,8 +145,6 @@ class Personaje(EntidadJuego):
 
     def aplicar_gravedad(self):
         if self.modo_cohete and self.chaqueta_cohete:
-            # En modo cohete: la gravedad se anula mientras se pulsa espacio,
-            # se aplica solo cuando se suelta la tecla.
             if self.vel_y < 0:
                 self.vel_y += self.gravedad * 0.1
             else:
@@ -196,12 +195,10 @@ class Personaje(EntidadJuego):
         self.colision_y(plataformas)
         self.limitar_x(ancho)
 
-        if self.forma.bottom > alto_total:
-            self.forma.bottom = alto_total
-            self.vel_y = 0
-            self.en_suelo = True
+        if self.forma.top > alto_total + 200:
+            return "cayo_fuera"
 
-         # impulso constante tipo cohete
+        return None
     def distancia(self, punto):
         cx, cy = self.forma.center
         return ((cx - punto[0]) ** 2 + (cy - punto[1]) ** 2) ** 0.5
@@ -216,9 +213,6 @@ class Personaje(EntidadJuego):
     def perder_vida(self):
         self.vidas -= 1
         self.tiene_cable = False
-        # No limpiamos el cohete: si el jugador lo recogió, lo conserva.
-        # (El power-up se consume por tiempo en activar_cohete, no por muerte.)
-
         if self.chaquetas > 0:
             self.chaquetas -= 1
 
@@ -254,18 +248,16 @@ class Personaje(EntidadJuego):
         pantalla.blit(img, (x, y))
         self.actualizar_particulas(pantalla, cam_x, cam_y)
     def activar_cohete(self, tecla_space):
-        # Si no tiene el power-up, salir del modo cohete
         if not self.chaqueta_cohete:
             if self.modo_cohete:
                 self.modo_cohete = False
                 self.generar_particulas = False
             return
 
-        # Iniciar temporizador la primera vez
         if self.cohete_tiempo == 0 and tecla_space:
             self.cohete_tiempo = pygame.time.get_ticks()
 
-        # Si el power-up expiró, desactivarlo
+        
         if self.cohete_tiempo > 0:
             ahora = pygame.time.get_ticks()
             if ahora - self.cohete_tiempo >= self.duracion_cohete:
@@ -275,14 +267,14 @@ class Personaje(EntidadJuego):
                 self.cohete_tiempo = 0
                 return
 
-        # Mientras se mantenga la barra espaciadora, impulso hacia arriba
+        
         if tecla_space:
             if not self.modo_cohete:
-                # Impulso inicial fuerte al activar
+                
                 self.vel_y = -14
                 self.modo_cohete = True
             else:
-                # Impulso continuo (sustituye a la gravedad)
+                
                 self.vel_y = -10
             self.generar_particulas = True
         else:
@@ -494,7 +486,7 @@ class PlataformaFantasma:
         return not self.desaparecida
 
 class EnemigoPatrulla(EntidadJuego):
-    def __init__(self, x, y, ancho_plataforma,
+    def __init__(self, x, y, plataforma,
                  velocidad=2, tamano=40):
 
         super().__init__(tamano)
@@ -503,9 +495,15 @@ class EnemigoPatrulla(EntidadJuego):
 
         self.velocidad = velocidad
 
-        self.min_x = x
-        self.max_x = x + ancho_plataforma - tamano
-
+        self.min_x = plataforma.left
+        self.max_x = plataforma.right - tamano
+        self.plataforma = plataforma
+        self.estado = "patrulla"
+        self.rango_deteccion = 250
+        self.velocidad_perseguir = 3
+        self.ultimo_disparo = 0
+        self.tiempo_recarga = 1500
+        
         try:
             self.imagen = pygame.image.load(
                 "assets/images/enemigo.png"
@@ -518,22 +516,78 @@ class EnemigoPatrulla(EntidadJuego):
         except:
             self.imagen = None
 
+    def actualizar(self, jugador):
+        distancia_x = abs(jugador.forma.centerx - self.forma.centerx)
+        distancia_y = abs(jugador.forma.centery - self.forma.centery)
+
+        if distancia_x < self.rango_deteccion and distancia_y < 100:
+            self.estado = "perseguir"
+        else:
+            self.estado = "patrulla"
+
+        if self.estado == "patrulla":
+            self.forma.x += self.velocidad
+
+            if self.forma.x <= self.min_x:
+                self.forma.x = self.min_x
+                self.velocidad *= -1
+                self.voltear = False
+            elif self.forma.x >= self.max_x:
+                self.forma.x = self.max_x
+                self.velocidad *= -1
+                self.voltear = True
+
+        elif self.estado == "perseguir":
+            if jugador.forma.centerx < self.forma.centerx:
+                self.forma.x -= self.velocidad_perseguir
+                self.voltear = True
+            else:
+                self.forma.x += self.velocidad_perseguir
+                self.voltear = False
+
+            if self.forma.x < self.min_x:
+                self.forma.x = self.min_x
+            elif self.forma.x > self.max_x:
+                self.forma.x = self.max_x
+
+    def intentar_disparar(self, jugador, ahora):
+        proyectiles = []
+        distancia_x = jugador.forma.centerx - self.forma.centerx
+        distancia_y = jugador.forma.centery - self.forma.centery
+        distancia_total = (distancia_x ** 2 + distancia_y ** 2) ** 0.5
+
+        if distancia_total < self.rango_deteccion and ahora - self.ultimo_disparo > self.tiempo_recarga:
+            self.ultimo_disparo = ahora
+            if distancia_x > 0:
+                vel_x = 6
+            else:
+                vel_x = -6
+            proyectiles.append(ProyectilEnemigo(
+                self.forma.centerx,
+                self.forma.centery,
+                vel_x, 0
+            ))
+
+        return proyectiles
+
+class ProyectilEnemigo:
+    def __init__(self, x, y, vel_x=0, vel_y=0, tamano=8):
+        self.forma = pygame.Rect(x, y, tamano, tamano)
+        self.vel_x = vel_x
+        self.vel_y = vel_y
+        self.activo = True
+
     def actualizar(self):
-        self.forma.x += self.velocidad
+        self.forma.x += self.vel_x
+        self.forma.y += self.vel_y
 
-        if self.forma.left <= self.min_x:
-            self.forma.left = self.min_x
-            self.velocidad *= -1
-            self.voltear = False
-
-        elif self.forma.right >= self.max_x:
-            self.forma.right = self.max_x
-            self.velocidad *= -1
-            self.voltear = True
-
-    def toca_jugador(self, jugador):
-        return self.forma.colliderect(jugador.forma)
-    
+    def dibujar(self, pantalla, cam_x, cam_y):
+        pygame.draw.circle(
+            pantalla,
+            (255, 100, 0),
+            (self.forma.centerx - cam_x, self.forma.centery - cam_y),
+            self.forma.width // 2
+        )
 class EnemigoEmergente(EntidadJuego):
 
     def __init__(self, x, y, altura_subida=80,

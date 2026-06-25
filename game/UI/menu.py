@@ -3,6 +3,7 @@ import sys
 import cv2
 from db.database_manager import top_5_puntajes, leer_csv, PERSONAJES_CSV
 from game.UI.menu_efects import MenuEffects
+from game.UI.configuracion import PanelConfiguracion
 
 
 class Menu:
@@ -11,12 +12,15 @@ class Menu:
         self.ancho = ancho
         self.alto = alto
         self.opcion = 0
-        self.opciones = ["Jugar", "Ranking", "Salir"]
+        self.opciones = ["Jugar", "Ranking", "Configuración", "Salir"]
         self.frames_video = []
         self.frame_actual = 0
         self.direccion_video = 1
         self.titulo_img = None
         self.effects = MenuEffects(ancho, alto)
+        self.config = {}
+        self.panel_config = PanelConfiguracion(pantalla, ancho, alto, self.config)
+        self.panel_abierto = False
 
         try:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 60)
@@ -45,9 +49,12 @@ class Menu:
             self.btn_ranking = pygame.transform.scale(self.btn_ranking, (425, 220))
             self.btn_salir = pygame.image.load("assets/images/HUD/boton_salir.png").convert_alpha()
             self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 220))
-            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 450))
-            self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 550))
-            self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 640))
+            self.btn_config = pygame.image.load("assets/images/HUD/boton_configuracion.png").convert_alpha()
+            self.btn_config = pygame.transform.scale(self.btn_config, (425, 220))
+            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 400))
+            self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 490))
+            self.rect_config = self.btn_config.get_rect(center=(MENU_X, 580))
+            self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 670))
         except Exception as e:
             print(f"Error cargando botones: {e}")
             self.titulo_img = None
@@ -161,7 +168,8 @@ class Menu:
             overlay.fill((0, 0, 0, 140))
             self.pantalla.blit(overlay, (0, 0))
 
-            self.effects.dibujar_particulas(self.pantalla)
+            if self.config.get("particulas", True):
+                self.effects.dibujar_particulas(self.pantalla)
 
             titulo = self.effects.render_texto_pulso(
                 self.fuente_titulo, "TOP 5", (120, 230, 255), 1, 0.08
@@ -205,8 +213,6 @@ class Menu:
         overlay.fill((0, 0, 0, 120))
         self.pantalla.blit(overlay, (0, 0))
 
-        self.effects.dibujar_particulas(self.pantalla)
-
         if self.titulo_img:
             x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
             self.pantalla.blit(self.titulo_img, (x, 50))
@@ -214,6 +220,7 @@ class Menu:
             botones = [
                 (self.btn_jugar, self.rect_jugar),
                 (self.btn_ranking, self.rect_ranking),
+                (self.btn_config, self.rect_config),
                 (self.btn_salir, self.rect_salir)
             ]
 
@@ -250,7 +257,13 @@ class Menu:
                     )
                 else:
                     texto = self.fuente_menu.render(op, True, (200, 200, 200))
-                self.pantalla.blit(texto, texto.get_rect(center=(self.ancho // 2, y)))
+                    self.pantalla.blit(texto, texto.get_rect(center=(self.ancho // 2, y)))
+
+        if self.panel_abierto:
+            self.panel_config.dibujar_panel(self.pantalla)
+
+        if self.config.get("particulas", True):
+            self.effects.dibujar_particulas(self.pantalla)
 
         pygame.display.flip()
 
@@ -261,6 +274,15 @@ class Menu:
                 if evento.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
+                if self.panel_abierto:
+                    resultado = self.panel_config.manejar_evento(evento)
+                    if resultado == "guardar":
+                        self.panel_abierto = False
+                    elif resultado == "cancelar":
+                        self.panel_abierto = False
+                    continue
+
                 if evento.type == pygame.KEYDOWN:
                     if evento.key in (pygame.K_w, pygame.K_UP):
                         self.opcion = (self.opcion - 1) % len(self.opciones)
@@ -269,12 +291,10 @@ class Menu:
                     elif evento.key in (pygame.K_RETURN, pygame.K_SPACE):
                         op = self.opciones[self.opcion]
                         if op == "Jugar":
-                            # Sin efecto - directo al juego
                             pygame.mixer.music.stop()
                             return "jugar"
 
                         elif op == "Ranking":
-                            # Efecto matrix
                             self.effects.iniciar_matrix(lambda: None)
                             while self.effects.matrix_activo:
                                 for ev in pygame.event.get():
@@ -288,22 +308,25 @@ class Menu:
                                 overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
                                 overlay.fill((0, 0, 0, 120))
                                 self.pantalla.blit(overlay, (0, 0))
-                                self.effects.dibujar_particulas(self.pantalla)
+                                if self.config.get("particulas", True):
+                                    self.effects.dibujar_particulas(self.pantalla)
                                 if self.titulo_img:
                                     x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
                                     self.pantalla.blit(self.titulo_img, (x, 50))
                                     for btn, rect in [(self.btn_jugar, self.rect_jugar),
                                                       (self.btn_ranking, self.rect_ranking),
+                                                      (self.btn_config, self.rect_config),
                                                       (self.btn_salir, self.rect_salir)]:
                                         self.pantalla.blit(btn, rect.topleft)
                                 self.effects.actualizar_matrix(self.pantalla)
                                 pygame.display.flip()
                                 reloj.tick(60)
-                            # Mostrar ranking y volver al menu
                             self.mostrar_ranking()
 
+                        elif op == "Configuración":
+                            self.panel_abierto = True
+
                         elif op == "Salir":
-                            # Efecto cristal
                             pantalla_captura = self.pantalla.copy()
                             self.effects.iniciar_cristal(lambda: None, pantalla_captura)
                             while self.effects.cristal_activo:
