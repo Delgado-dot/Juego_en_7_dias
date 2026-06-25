@@ -10,6 +10,7 @@ from game.UI.victoria import *
 from game.UI.intro import Introduccion
 from game.UI.pause import MenuPausa
 from historia import Historia
+from transicion_historia import TransicionAHistoria
 from config import *
 
 def reproducir_musica_nivel(idx):
@@ -355,6 +356,60 @@ def dibujar_cable(cam_y):
     else:
         w = fuente_peq.size("Cable cortado: vuelve al punto C o A")[0]
         texto("Cable cortado: vuelve al rack", fuente_peq, ROJO, (ANCHO // 2 - w // 2, 80))
+        
+def dibujar_dialogo_inicio(cam_y):
+    """Panel de instrucciones que aparece sobre el primer rack del nivel 1."""
+    if nivel_idx != 0:
+        return
+    if nivel_completado or game_over:
+        return
+
+    # Solo mostrar si el jugador está cerca del rack inicial (punto_a)
+    dist = math.hypot(
+        jugador.forma.centerx - nivel.punto_a[0],
+        jugador.forma.centery - nivel.punto_a[1]
+    )
+    if dist > 220:
+        return
+
+    # Posición del panel: arriba del rack en pantalla
+    ax, ay = nivel.punto_a[0], nivel.punto_a[1] - cam_y
+    panel_w, panel_h = 360, 110
+    panel_x = max(15, min(ax - panel_w // 2, ANCHO - panel_w - 15))
+    panel_y = max(15, ay - 150)
+
+    # Superficie con alpha para el fondo
+    overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    # Fondo oscuro semi-transparente (alpha 150)
+    pygame.draw.rect(overlay, (15, 20, 35, 200), (0, 0, panel_w, panel_h), border_radius=12)
+    # Borde cyan brillante
+    pygame.draw.rect(overlay, (0, 220, 255, 230), (0, 0, panel_w, panel_h), 2, border_radius=12)
+
+    # Líneas de texto
+    titulo = fuente_peq.render("MISIÓN", True, (0, 220, 255))
+    linea1 = fuente_peq.render("Llega al rack verde (R)", True, (240, 240, 240))
+    linea2 = fuente_peq.render("sin perder tu cable.", True, (240, 240, 240))
+    linea3 = fuente_peq.render("Evita sierras y trampas.", True, (200, 200, 200))
+
+    overlay.blit(titulo, (15, 12))
+    overlay.blit(linea1, (15, 38))
+    overlay.blit(linea2, (15, 58))
+    overlay.blit(linea3, (15, 82))
+
+    # Flecha apuntando al rack
+    if 0 < panel_x + panel_w // 2 < ANCHO:
+        flecha_x = panel_x + panel_w // 2
+        flecha_y_top = panel_y + panel_h
+        flecha_y_bottom = flecha_y_top + 10
+        pygame.draw.polygon(
+            pantalla,
+            (0, 220, 255),
+            [(flecha_x - 6, flecha_y_top),
+             (flecha_x + 6, flecha_y_top),
+             (flecha_x, flecha_y_bottom)]
+        )
+
+    pantalla.blit(overlay, (panel_x, panel_y))
 
 
 nivel_idx = 0
@@ -435,6 +490,8 @@ while True:
         pantalla, ANCHO, ALTO, fullscreen_actual
     )
     menu.panel_config.actualizar_dimensiones(ANCHO, ALTO)
+
+    TransicionAHistoria(pantalla, ANCHO, ALTO).ejecutar()
 
     historia = Historia(pantalla, ANCHO, ALTO)
     historia.ejecutar()
@@ -711,9 +768,10 @@ while True:
             for sc in sierras_cae:
                 sc.dibujar(pantalla, cam_x, cam_y)
             jugador.dibujar(pantalla, cam_x, cam_y)
+            dibujar_dialogo_inicio(cam_y)
             w = fuente_peq.size("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio")[0]
             texto("Mover: A/D o Flechas | Saltar: W, Arriba o Espacio", fuente_peq, (200, 200, 200), (ANCHO // 2 - w // 2, ALTO - 35))
             hud.draw(pantalla, jugador.vidas, jugador.vidas_max, jugador.chaquetas, tiempo_restante)
-
+            hud.draw_cohete_timer(pantalla, jugador)
         pygame.display.flip()
         reloj.tick(FPS)

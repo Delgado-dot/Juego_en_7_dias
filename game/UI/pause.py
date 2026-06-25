@@ -127,12 +127,30 @@ class MenuPausa:
                     elif evento.key in (pygame.K_s, pygame.K_DOWN):
                         self.opcion = (self.opcion + 1) % len(self.opciones)
                     elif evento.key in (pygame.K_RETURN, pygame.K_SPACE):
-                        if self.opcion == 0:
-                            return "reanudar"
-                        elif self.opcion == 1:
-                            return "reiniciar"
-                        elif self.opcion == 2:
-                            return "menu"
+                        return ["reanudar", "reiniciar", "menu"][self.opcion]
+
+                if evento.type == pygame.MOUSEMOTION:
+                    mouse = evento.pos
+                    t = min(1.0, (pygame.time.get_ticks() - self.tiempo_inicio) / self.duracion_entrada)
+                    panel_h = int(440 * (0.7 + 0.3 * t))
+                    panel_y = self.alto // 2 - panel_h // 2
+                    for i in range(len(self.opciones)):
+                        y = panel_y + 180 + i * 65
+                        btn_rect = pygame.Rect(self.ancho // 2 - 200, y - 25, 400, 50)
+                        if btn_rect.collidepoint(mouse):
+                            self.opcion = i
+                            break
+
+                if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    mouse = evento.pos
+                    t = min(1.0, (pygame.time.get_ticks() - self.tiempo_inicio) / self.duracion_entrada)
+                    panel_h = int(440 * (0.7 + 0.3 * t))
+                    panel_y = self.alto // 2 - panel_h // 2
+                    for i in range(len(self.opciones)):
+                        y = panel_y + 180 + i * 65
+                        btn_rect = pygame.Rect(self.ancho // 2 - 200, y - 25, 400, 50)
+                        if btn_rect.collidepoint(mouse):
+                            return ["reanudar", "reiniciar", "menu"][i]
 
             self.dibujar()
             reloj.tick(60)

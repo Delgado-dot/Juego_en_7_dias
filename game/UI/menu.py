@@ -50,10 +50,10 @@ class Menu:
             self.btn_salir = pygame.image.load("assets/images/HUD/boton_salir.png").convert_alpha()
             self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 220))
             self.btn_config = pygame.image.load("assets/images/HUD/boton_configuracion.png").convert_alpha()
-            self.btn_config = pygame.transform.scale(self.btn_config, (425, 220))
+            self.btn_config = pygame.transform.scale(self.btn_config, (280, 140))
             self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 400))
             self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 490))
-            self.rect_config = self.btn_config.get_rect(center=(MENU_X, 580))
+            self.rect_config = self.btn_config.get_rect(center=(MENU_X, 585))
             self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 670))
         except Exception as e:
             print(f"Error cargando botones: {e}")
@@ -215,7 +215,7 @@ class Menu:
 
         if self.titulo_img:
             x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
-            self.pantalla.blit(self.titulo_img, (x, 50))
+            self.pantalla.blit(self.titulo_img, (x, 25))
 
             botones = [
                 (self.btn_jugar, self.rect_jugar),
@@ -267,6 +267,62 @@ class Menu:
 
         pygame.display.flip()
 
+    def _ejecutar_opcion(self):
+        reloj = pygame.time.Clock()
+        op = self.opciones[self.opcion]
+        if op == "Jugar":
+            pygame.mixer.music.stop()
+            return "jugar"
+
+        elif op == "Ranking":
+            self.effects.iniciar_matrix(lambda: None)
+            while self.effects.matrix_activo:
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                if self.frames_video:
+                    self.avanzar_video()
+                else:
+                    self.pantalla.fill((10, 10, 30))
+                overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 120))
+                self.pantalla.blit(overlay, (0, 0))
+                if self.config.get("particulas", True):
+                    self.effects.dibujar_particulas(self.pantalla)
+                if self.titulo_img:
+                    x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
+                    self.pantalla.blit(self.titulo_img, (x, 50))
+                    for btn, rect in [(self.btn_jugar, self.rect_jugar),
+                                      (self.btn_ranking, self.rect_ranking),
+                                      (self.btn_config, self.rect_config),
+                                      (self.btn_salir, self.rect_salir)]:
+                        self.pantalla.blit(btn, rect.topleft)
+                self.effects.actualizar_matrix(self.pantalla)
+                pygame.display.flip()
+                reloj.tick(60)
+            self.mostrar_ranking()
+
+        elif op == "Configuración":
+            self.panel_abierto = True
+
+        elif op == "Salir":
+            pantalla_captura = self.pantalla.copy()
+            self.effects.iniciar_cristal(lambda: None, pantalla_captura)
+            while self.effects.cristal_activo:
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                self.pantalla.blit(pantalla_captura, (0, 0))
+                self.effects.actualizar_cristal(self.pantalla)
+                pygame.display.flip()
+                reloj.tick(60)
+            pygame.quit()
+            sys.exit()
+
+        return None
+
     def ejecutar(self):
         reloj = pygame.time.Clock()
         while True:
@@ -289,57 +345,28 @@ class Menu:
                     elif evento.key in (pygame.K_s, pygame.K_DOWN):
                         self.opcion = (self.opcion + 1) % len(self.opciones)
                     elif evento.key in (pygame.K_RETURN, pygame.K_SPACE):
-                        op = self.opciones[self.opcion]
-                        if op == "Jugar":
-                            pygame.mixer.music.stop()
-                            return "jugar"
+                        resultado = self._ejecutar_opcion()
+                        if resultado:
+                            return resultado
 
-                        elif op == "Ranking":
-                            self.effects.iniciar_matrix(lambda: None)
-                            while self.effects.matrix_activo:
-                                for ev in pygame.event.get():
-                                    if ev.type == pygame.QUIT:
-                                        pygame.quit()
-                                        sys.exit()
-                                if self.frames_video:
-                                    self.avanzar_video()
-                                else:
-                                    self.pantalla.fill((10, 10, 30))
-                                overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-                                overlay.fill((0, 0, 0, 120))
-                                self.pantalla.blit(overlay, (0, 0))
-                                if self.config.get("particulas", True):
-                                    self.effects.dibujar_particulas(self.pantalla)
-                                if self.titulo_img:
-                                    x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
-                                    self.pantalla.blit(self.titulo_img, (x, 50))
-                                    for btn, rect in [(self.btn_jugar, self.rect_jugar),
-                                                      (self.btn_ranking, self.rect_ranking),
-                                                      (self.btn_config, self.rect_config),
-                                                      (self.btn_salir, self.rect_salir)]:
-                                        self.pantalla.blit(btn, rect.topleft)
-                                self.effects.actualizar_matrix(self.pantalla)
-                                pygame.display.flip()
-                                reloj.tick(60)
-                            self.mostrar_ranking()
+                if evento.type == pygame.MOUSEMOTION:
+                    mouse = evento.pos
+                    for i, rect in enumerate([self.rect_jugar, self.rect_ranking,
+                                              self.rect_config, self.rect_salir]):
+                        if rect.collidepoint(mouse):
+                            self.opcion = i
+                            break
 
-                        elif op == "Configuración":
-                            self.panel_abierto = True
-
-                        elif op == "Salir":
-                            pantalla_captura = self.pantalla.copy()
-                            self.effects.iniciar_cristal(lambda: None, pantalla_captura)
-                            while self.effects.cristal_activo:
-                                for ev in pygame.event.get():
-                                    if ev.type == pygame.QUIT:
-                                        pygame.quit()
-                                        sys.exit()
-                                self.pantalla.blit(pantalla_captura, (0, 0))
-                                self.effects.actualizar_cristal(self.pantalla)
-                                pygame.display.flip()
-                                reloj.tick(60)
-                            pygame.quit()
-                            sys.exit()
+                if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    mouse = evento.pos
+                    for i, rect in enumerate([self.rect_jugar, self.rect_ranking,
+                                              self.rect_config, self.rect_salir]):
+                        if rect.collidepoint(mouse):
+                            self.opcion = i
+                            resultado = self._ejecutar_opcion()
+                            if resultado:
+                                return resultado
+                            break
 
             self.dibujar()
             reloj.tick(60)
