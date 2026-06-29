@@ -145,7 +145,7 @@ class Menu:
 
         def nombre_por_id(pid):
             for p in personajes:
-                if p["id"] == str(pid):
+                if int(p["id"]) == int(pid):
                     return p["nombre"]
             return "???"
 

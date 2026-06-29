@@ -1,106 +1,232 @@
-import csv
+import sqlite3
 import os
 from datetime import datetime
 
-DATA_DIR = "db"
+DB_PATH = os.path.join("db", "videojuego.db")
 
-JUGADORES_CSV = os.path.join(DATA_DIR, "jugador.csv")
-PERSONAJES_CSV = os.path.join(DATA_DIR, "personaje.csv")
-PUNTAJES_CSV = os.path.join(DATA_DIR, "puntaje.csv")
-NIVELES_CSV = os.path.join(DATA_DIR, "niveles.csv")
-OBJETOS_CSV = os.path.join(DATA_DIR, "objetos.csv")
+PERSONAJES_CSV = "compat"
 
-ENCABEZADOS = {
-    JUGADORES_CSV: ["id", "nombre", "nivel", "puntos_totales"],
-    PERSONAJES_CSV: ["id", "nombre", "vida", "jugador_id"],
-    PUNTAJES_CSV: ["id", "puntos", "fecha", "personaje_id", "nivel_id", "chaqueta_equipada", "tiempo_juego"],
-    NIVELES_CSV: ["id", "nombre_nivel", "dificultad", "descripcion"],
-    OBJETOS_CSV: ["id", "nombre_objeto", "tipo", "descripcion", "personaje_id"],
-}
+
+def _conexion():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    return sqlite3.connect(DB_PATH)
+
 
 def inicializar():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    for ruta, encabezado in ENCABEZADOS.items():
-        if not os.path.exists(ruta):
-            with open(ruta, "w", newline="", encoding="utf-8") as archivo:
-                escritor = csv.writer(archivo)
-                escritor.writerow(encabezado)
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS jugador (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            nivel INTEGER DEFAULT 1,
+            puntos_totales INTEGER DEFAULT 0
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS personaje (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            vida INTEGER DEFAULT 100,
+            jugador_id INTEGER NOT NULL,
+            FOREIGN KEY (jugador_id) REFERENCES jugador(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS niveles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre_nivel TEXT NOT NULL,
+            dificultad INTEGER DEFAULT 1,
+            descripcion TEXT DEFAULT ''
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS objetos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre_objeto TEXT NOT NULL,
+            tipo TEXT NOT NULL,
+            descripcion TEXT DEFAULT '',
+            personaje_id INTEGER NOT NULL,
+            FOREIGN KEY (personaje_id) REFERENCES personaje(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS puntaje (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            puntos INTEGER DEFAULT 0,
+            fecha TEXT NOT NULL,
+            personaje_id INTEGER NOT NULL,
+            nivel_id INTEGER DEFAULT 1,
+            chaqueta_equipada INTEGER DEFAULT 0,
+            tiempo_juego TEXT DEFAULT '00:00',
+            FOREIGN KEY (personaje_id) REFERENCES personaje(id)
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-def leer_csv(ruta):
-    with open(ruta, "r", encoding="utf-8") as archivo:
-        lector = csv.DictReader(archivo)
-        return list(lector)
-
-def nuevo_id(ruta):
-    with open(ruta, "r", encoding="utf-8") as archivo:
-        lector = csv.reader(archivo)
-        filas = list(lector)
-    return len(filas)
-
-def agregar_fila(ruta, fila):
-    with open(ruta, "a", newline="", encoding="utf-8") as archivo:
-        escritor = csv.writer(archivo)
-        escritor.writerow(fila)
-
-def existe_id(ruta, id_buscar):
-    datos = leer_csv(ruta)
-    for fila in datos:
-        if fila["id"] == str(id_buscar):
-            return True
-    return False
 
 def crear_jugador(nombre, nivel=1, puntos_totales=0):
-    id_nuevo = nuevo_id(JUGADORES_CSV)
-    agregar_fila(JUGADORES_CSV, [id_nuevo, nombre, nivel, puntos_totales])
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO jugador (nombre, nivel, puntos_totales) VALUES (?, ?, ?)",
+        (nombre, nivel, puntos_totales)
+    )
+    id_nuevo = cursor.lastrowid
+    conn.commit()
+    conn.close()
     return id_nuevo
+
 
 def obtener_jugadores():
-    return leer_csv(JUGADORES_CSV)
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, nivel, puntos_totales FROM jugador ORDER BY id")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
 
 def crear_personaje(nombre, vida, jugador_id):
-    if not existe_id(JUGADORES_CSV, jugador_id):
-        print("Error: el jugador_id no existe")
-        return None
-    id_nuevo = nuevo_id(PERSONAJES_CSV)
-    agregar_fila(PERSONAJES_CSV, [id_nuevo, nombre, vida, jugador_id])
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO personaje (nombre, vida, jugador_id) VALUES (?, ?, ?)",
+        (nombre, vida, jugador_id)
+    )
+    id_nuevo = cursor.lastrowid
+    conn.commit()
+    conn.close()
     return id_nuevo
+
 
 def obtener_personajes():
-    return leer_csv(PERSONAJES_CSV)
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, vida, jugador_id FROM personaje ORDER BY id")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
 
 def crear_nivel_db(nombre_nivel, dificultad, descripcion):
-    id_nuevo = nuevo_id(NIVELES_CSV)
-    agregar_fila(NIVELES_CSV, [id_nuevo, nombre_nivel, dificultad, descripcion])
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO niveles (nombre_nivel, dificultad, descripcion) VALUES (?, ?, ?)",
+        (nombre_nivel, dificultad, descripcion)
+    )
+    id_nuevo = cursor.lastrowid
+    conn.commit()
+    conn.close()
     return id_nuevo
+
 
 def obtener_niveles():
-    return leer_csv(NIVELES_CSV)
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre_nivel, dificultad, descripcion FROM niveles ORDER BY id")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
 
 def crear_objeto(nombre_objeto, tipo, descripcion, personaje_id):
-    if not existe_id(PERSONAJES_CSV, personaje_id):
-        print("Error: el personaje_id no existe")
-        return None
-    id_nuevo = nuevo_id(OBJETOS_CSV)
-    agregar_fila(OBJETOS_CSV, [id_nuevo, nombre_objeto, tipo, descripcion, personaje_id])
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO objetos (nombre_objeto, tipo, descripcion, personaje_id) VALUES (?, ?, ?, ?)",
+        (nombre_objeto, tipo, descripcion, personaje_id)
+    )
+    id_nuevo = cursor.lastrowid
+    conn.commit()
+    conn.close()
     return id_nuevo
+
 
 def obtener_objetos():
-    return leer_csv(OBJETOS_CSV)
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre_objeto, tipo, descripcion, personaje_id FROM objetos ORDER BY id")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
 
 def guardar_puntaje(puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego):
-    if not existe_id(PERSONAJES_CSV, personaje_id):
-        print("Error: el personaje_id no existe")
-        return None
-    id_nuevo = nuevo_id(PUNTAJES_CSV)
-    agregar_fila(PUNTAJES_CSV, [id_nuevo, puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego])
+    conn = _conexion()
+    cursor = conn.cursor()
+    if fecha is None:
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
+    cursor.execute(
+        """INSERT INTO puntaje (puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego)
+    )
+    id_nuevo = cursor.lastrowid
+    conn.commit()
+    conn.close()
     return id_nuevo
 
+
 def obtener_puntajes():
-    return leer_csv(PUNTAJES_CSV)
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego FROM puntaje ORDER BY id")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
 
 def top_5_puntajes():
-    puntajes = obtener_puntajes()
-    puntajes.sort(key=lambda x: int(x["puntos"]), reverse=True)
-    return puntajes[:5]
+    conn = _conexion()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, puntos, fecha, personaje_id, nivel_id, chaqueta_equipada, tiempo_juego FROM puntaje ORDER BY puntos DESC LIMIT 5")
+    datos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return datos
+
+
+def leer_csv(ruta):
+    return obtener_personajes()
+
+
+def buscar_jugador_por_nombre(nombre):
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, nivel, puntos_totales FROM jugador WHERE LOWER(nombre) = LOWER(?) LIMIT 1", (nombre,))
+    jugador = cursor.fetchone()
+    conn.close()
+    return jugador
+
+
+def iniciar_jugador(nombre):
+    jugador = buscar_jugador_por_nombre(nombre)
+    if jugador:
+        print("Jugador encontrado:", jugador)
+        return jugador
+    id_jugador = crear_jugador(nombre, 1, 0)
+    id_personaje = crear_personaje("Explorador", 100, id_jugador)
+    print("Jugador nuevo creado")
+    print("ID jugador:", id_jugador)
+    print("ID personaje:", id_personaje)
+    return obtener_jugador_por_id(id_jugador)
+
+
+def obtener_jugador_por_id(id_jugador):
+    conn = _conexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, nivel, puntos_totales FROM jugador WHERE id = ?", (id_jugador,))
+    jugador = cursor.fetchone()
+    conn.close()
+    return jugador
+
 
 inicializar()
