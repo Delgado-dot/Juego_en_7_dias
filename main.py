@@ -11,6 +11,7 @@ from game.UI.intro import Introduccion
 from game.UI.pause import MenuPausa
 from historia import Historia
 from transicion_historia import TransicionAHistoria
+from game.UI.puzzles.puzzle_dispatcher import PuzzleDispatcher
 from config import *
 
 def reproducir_musica_nivel(idx):
@@ -726,18 +727,37 @@ while True:
                 if siguiente >= len(NIVELES):
                     victoria_final = True
                 else:
-                    portal_transicion(True)
+                    try:
+                        pygame.mixer.music.pause()
+                    except:
+                        pass
 
-                    nivel_idx = siguiente
-                    crear_nivel(nivel_idx)
-                    todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
-                    jugador.forma.x = nivel.punto_a[0]
-                    jugador.forma.y = nivel.punto_a[1] - tam_jugador
-                    jugador.vel_x = 0
-                    jugador.vel_y = 0
-                    jugador.tiene_cable = True
+                    puzzle = PuzzleDispatcher(pantalla, ANCHO, ALTO, fuente_peq, nivel_idx)
+                    resultado_puzzle = puzzle.ejecutar()
 
-                    portal_transicion(False)
+                    try:
+                        pygame.mixer.music.unpause()
+                    except:
+                        pass
+
+                    if resultado_puzzle == "resuelto":
+                        portal_transicion(True)
+
+                        nivel_idx = siguiente
+                        crear_nivel(nivel_idx)
+                        todas_colisiones = nivel.plataformas + nivel.paredes + [dp.obtener_colision() for dp in nivel.plataformas_dinamicas]
+                        jugador.forma.x = nivel.punto_a[0]
+                        jugador.forma.y = nivel.punto_a[1] - tam_jugador
+                        jugador.vel_x = 0
+                        jugador.vel_y = 0
+                        jugador.tiene_cable = True
+
+                        portal_transicion(False)
+                    elif resultado_puzzle == "salir":
+                        pygame.quit()
+                        sys.exit()
+                    else:
+                        nivel_completado = False
 
         dibujar_fondo(cam_y)
 
