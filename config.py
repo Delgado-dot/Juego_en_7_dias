@@ -41,6 +41,7 @@ FUENTE_HUD = os.path.join(RUTA_FUENTES, "PressStart2P-Regular.ttf")
 
 MUSICA_JUEGO = os.path.join(RUTA_SONIDOS, "musica_juego.mp3")
 MUSICA_MENU = os.path.join(RUTA_SONIDOS, "musica_menu.mp3")
+MUSICA_INTRO = os.path.join(RUTA_SONIDOS, "musica_menu_intro.mp3")
 MUSICA_NIVELES = [
     os.path.join(RUTA_SONIDOS, "LVL1.mp3"),
     os.path.join(RUTA_SONIDOS, "LVL 2.mp3"),

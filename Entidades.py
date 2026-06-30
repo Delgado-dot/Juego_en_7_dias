@@ -503,20 +503,69 @@ class EnemigoPatrulla(EntidadJuego):
         self.velocidad_perseguir = 3
         self.ultimo_disparo = 0
         self.tiempo_recarga = 1500
-        
-        try:
-            self.imagen = pygame.image.load(
-                "assets/images/enemigo.png"
-            ).convert_alpha()
 
-            self.imagen = pygame.transform.scale(
-                self.imagen,
-                (tamano, tamano)
-            )
-        except:
+        self.frames = {}
+        self.frame_actual = 0
+        self.ultimo_frame_time = pygame.time.get_ticks()
+        self.velocidad_animacion = 100
+        self._cargar_sprites()
+
+    def _cargar_sprites(self):
+        base = "assets/sprites/Enemigo_perseguidor/"
+        sprites_info = {
+            "idle": "enemigo_idle.png",
+            "patrol": "enemigo_patrol.png",
+            "chase": "enemigo_chase.png",
+            "attack": "enemigo_attack.png",
+            "alert": "enemigo_alert.png",
+        }
+
+        for key, archivo in sprites_info.items():
+            try:
+                img = pygame.image.load(base + archivo).convert_alpha()
+                w, h = img.get_size()
+                n_frames = w // h
+                frame_w = w // n_frames
+
+                frames_lista = []
+                escala = 0.25
+                nuevo_w = int(frame_w * escala)
+                nuevo_h = int(h * escala)
+                for i in range(n_frames):
+                    frame = img.subsurface(
+                        pygame.Rect(i * frame_w, 0, frame_w, h)
+                    )
+                    frame = pygame.transform.scale(frame, (nuevo_w, nuevo_h))
+                    frames_lista.append(frame)
+
+                self.frames[key] = frames_lista
+            except Exception as e:
+                print(f"Error cargando sprite {archivo}: {e}")
+                self.frames[key] = []
+
+        if self.frames.get("patrol"):
+            self.imagen = self.frames["patrol"][0]
+        elif self.frames.get("idle"):
+            self.imagen = self.frames["idle"][0]
+        else:
             self.imagen = None
 
+    def _obtener_frames_estado(self):
+        if self.estado == "patrulla":
+            return self.frames.get("patrol", [])
+        elif self.estado == "perseguir":
+            return self.frames.get("chase", [])
+        return self.frames.get("idle", [])
+
     def actualizar(self, jugador):
+        ahora = pygame.time.get_ticks()
+
+        frames = self._obtener_frames_estado()
+        if frames and ahora - self.ultimo_frame_time >= self.velocidad_animacion:
+            self.ultimo_frame_time = ahora
+            self.frame_actual = (self.frame_actual + 1) % len(frames)
+            self.imagen = frames[self.frame_actual]
+
         distancia_x = abs(jugador.forma.centerx - self.forma.centerx)
         distancia_y = abs(jugador.forma.centery - self.forma.centery)
 
@@ -569,6 +618,24 @@ class EnemigoPatrulla(EntidadJuego):
             ))
 
         return proyectiles
+
+    def dibujar(self, pantalla, cam_x=0, cam_y=0):
+        if self.imagen is None:
+            rect_temporal = pygame.Rect(
+                self.forma.x - cam_x,
+                self.forma.y - cam_y,
+                self.forma.width,
+                self.forma.height
+            )
+            pygame.draw.rect(pantalla, (255, 0, 0), rect_temporal)
+            return
+
+        img = pygame.transform.flip(self.imagen, self.voltear, False)
+
+        x = self.forma.centerx - img.get_width() // 2 - cam_x
+        y = self.forma.centery - img.get_height() // 2 - cam_y
+
+        pantalla.blit(img, (x, y))
 
 class ProyectilEnemigo:
     def __init__(self, x, y, vel_x=0, vel_y=0, tamano=8):

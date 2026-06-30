@@ -2,6 +2,7 @@ import pygame
 import sys
 import math
 from game.UI.menu_efects import MenuEffects
+from config import MUSICA_INTRO
 
 
 class Introduccion:
@@ -301,6 +302,13 @@ class Introduccion:
         pygame.display.flip()
 
     def ejecutar(self):
+        try:
+            pygame.mixer.music.load(MUSICA_INTRO)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
         reloj = pygame.time.Clock()
         while not self.terminado:
             for evento in pygame.event.get():
@@ -313,11 +321,13 @@ class Introduccion:
                         if self.fase == "fade_out":
                             continue
                         if self.pantalla_idx == len(self.PANTALLAS) - 1:
+                            pygame.mixer.music.stop()
                             self.terminado = True
                             break
                         self.fase = "fade_out"
                         self.tiempo_inicio = pygame.time.get_ticks()
                     elif evento.key == pygame.K_ESCAPE:
+                        pygame.mixer.music.stop()
                         self.terminado = True
                         break
 

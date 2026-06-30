@@ -1,6 +1,6 @@
 import pygame
 import os
-from config import BASE_DIR
+from config import BASE_DIR, MUSICA_INTRO
 
 
 def ease_out_cubic(t):
@@ -118,6 +118,13 @@ class Historia:
         indice_texto = 0
         reloj = pygame.time.Clock()
 
+        try:
+            pygame.mixer.music.load(MUSICA_INTRO)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
         animando = True
         tiempo_box = pygame.time.get_ticks()
         tiempo_typewriter = None
@@ -128,10 +135,12 @@ class Historia:
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    pygame.mixer.music.stop()
                     return
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
+                        pygame.mixer.music.stop()
                         return
 
                     if event.key == pygame.K_RETURN:
@@ -141,6 +150,7 @@ class Historia:
                             alpha_botones = 255
                             resultado = self._avanzar(indice_slide, indice_texto)
                             if resultado[0] is None:
+                                pygame.mixer.music.stop()
                                 return
                             indice_slide = resultado[0]
                             indice_texto = resultado[1]
@@ -149,6 +159,7 @@ class Historia:
                         else:
                             resultado = self._avanzar(indice_slide, indice_texto)
                             if resultado[0] is None:
+                                pygame.mixer.music.stop()
                                 return
                             indice_slide = resultado[0]
                             indice_texto = resultado[1]
@@ -160,12 +171,14 @@ class Historia:
                         alpha_botones = 255
                         resultado = self._avanzar(indice_slide, indice_texto)
                         if resultado[0] is None:
+                            pygame.mixer.music.stop()
                             return
                         indice_slide = resultado[0]
                         indice_texto = resultado[1]
                     elif alpha_botones >= 255:
                         resultado = self._avanzar(indice_slide, indice_texto)
                         if resultado[0] is None:
+                            pygame.mixer.music.stop()
                             return
                         indice_slide = resultado[0]
                         indice_texto = resultado[1]
