@@ -51,10 +51,10 @@ class Menu:
             self.btn_salir = pygame.transform.scale(self.btn_salir, (450, 220))
             self.btn_config = pygame.image.load("assets/images/HUD/boton_configuracion.png").convert_alpha()
             self.btn_config = pygame.transform.scale(self.btn_config, (280, 140))
-            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 400))
-            self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 490))
-            self.rect_config = self.btn_config.get_rect(center=(MENU_X, 585))
-            self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 670))
+            self.rect_jugar = self.btn_jugar.get_rect(center=(MENU_X, 370))
+            self.rect_ranking = self.btn_ranking.get_rect(center=(MENU_X, 485))
+            self.rect_config = self.btn_config.get_rect(center=(MENU_X, 580))
+            self.rect_salir = self.btn_salir.get_rect(center=(MENU_X, 680))
         except Exception as e:
             print(f"Error cargando botones: {e}")
             self.titulo_img = None
@@ -215,7 +215,7 @@ class Menu:
 
         if self.titulo_img:
             x = int(self.ancho * 0.70) - self.titulo_img.get_width() // 2
-            self.pantalla.blit(self.titulo_img, (x, 25))
+            self.pantalla.blit(self.titulo_img, (x, -2))
 
             botones = [
                 (self.btn_jugar, self.rect_jugar),
