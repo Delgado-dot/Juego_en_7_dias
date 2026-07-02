@@ -388,7 +388,7 @@ def dibujar_dialogo_inicio(cam_y):
 
     # Líneas de texto
     titulo = fuente_peq.render("MISIÓN", True, (0, 220, 255))
-    linea1 = fuente_peq.render("Llega al rack verde (R)", True, (240, 240, 240))
+    linea1 = fuente_peq.render("Llega al rack rojo ", True, (240, 240, 240))
     linea2 = fuente_peq.render("sin perder tu cable.", True, (240, 240, 240))
     linea3 = fuente_peq.render("Evita sierras y trampas.", True, (200, 200, 200))
 

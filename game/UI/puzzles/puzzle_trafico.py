@@ -65,11 +65,9 @@ class PuzzleTrafico(BasePuzzle):
                 "protocolo": prot,
                 "color": color_bin,
                 "snippet": snippet,
-                "estado": "cola",
+                "estado": "cola",  # "cola" | "agarrado" | "depositado"
                 "x": 0, "y": 0,
                 "bin_id": None,
-                "deposit_scale": 1.0,
-                "deposit_scale_tiempo": 0,
             })
 
         # Posicionar paquetes en cola vertical (izquierda)
@@ -165,12 +163,11 @@ class PuzzleTrafico(BasePuzzle):
         b = self.bins[bin_id]
 
         if p["protocolo"] == b["nombre"]:
+            # Correcto
             p["estado"] = "depositado"
             p["bin_id"] = bin_id
             p["x"] = b["rect"].x + 30
             p["y"] = b["rect"].bottom - 50
-            p["deposit_scale"] = 1.3
-            p["deposit_scale_tiempo"] = pygame.time.get_ticks()
             self.paquete_arrastrado = None
             b["flash_color"] = (120, 255, 180)
             b["flash_tiempo"] = pygame.time.get_ticks()
@@ -204,14 +201,6 @@ class PuzzleTrafico(BasePuzzle):
         for b in self.bins:
             if b["flash_color"] is not None and ahora - b["flash_tiempo"] > self.DURACION_ERROR:
                 b["flash_color"] = None
-        for p in self.paquetes:
-            if p["deposit_scale"] != 1.0:
-                elapsed = ahora - p["deposit_scale_tiempo"]
-                if elapsed > 250:
-                    p["deposit_scale"] = 1.0
-                else:
-                    t = elapsed / 250
-                    p["deposit_scale"] = 1.3 - 0.3 * t
 
     def _dibujar_subclase(self):
         # Bins primero (debajo)
@@ -238,29 +227,25 @@ class PuzzleTrafico(BasePuzzle):
         w, h = 280, 56
         color = p["color"]
 
-        scale = p.get("deposit_scale", 1.0)
-        if scale != 1.0:
-            sw = int(w * scale)
-            sh = int(h * scale)
-            sx = x - (sw - w) // 2
-            sy = y - (sh - h) // 2
-        else:
-            sw, sh, sx, sy = w, h, x, y
-
-        surf = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        # Caja con borde
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
         surf.fill((*color, 50))
-        pygame.draw.rect(surf, color, (0, 0, sw, sh), 2, border_radius=8)
-        pygame.draw.rect(surf, color, (0, 0, 6, sh), border_radius=3)
+        pygame.draw.rect(surf, color, (0, 0, w, h), 2, border_radius=8)
 
+        # Banda lateral de color
+        pygame.draw.rect(surf, color, (0, 0, 6, h), border_radius=3)
+
+        # Header: hex prefix + protocolo
         header_texto = f"{p['protocolo']}"
         header_render = self.fuente_peq.render(header_texto, True, color)
         surf.blit(header_render, (14, 8))
 
+        # Payload
         payload_render = self.fuente_peq.render(p["snippet"], True, (240, 240, 250))
         surf.blit(payload_render, (14, 28))
 
         surf.set_alpha(alpha)
-        self.pantalla.blit(surf, (sx, sy))
+        self.pantalla.blit(surf, (x, y))
 
     def _dibujar_bin(self, b):
         rect = b["rect"]

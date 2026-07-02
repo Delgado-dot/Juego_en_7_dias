@@ -25,6 +25,7 @@ class GameOver:
             self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 58)
             self.fuente_menu = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 22)
             self.fuente_peq = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 14)
+            self.fuente_minijuegos = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 10)
         except:
             self.fuente_titulo = pygame.font.SysFont("Arial", 58)
             self.fuente_menu = pygame.font.SysFont("Arial", 22)

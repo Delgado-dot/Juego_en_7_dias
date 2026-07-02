@@ -18,7 +18,7 @@ class Introduccion:
                     "lineas": [
                         "Eres un tecnico de redes en peligro.",
                         "Tu cable de datos esta conectado al rack inicial.",
-                        "Llega al rack verde (R) sin perder la conexion.",
+                        "Llega al rack rojo sin perder la conexion.",
                     ],
                 },
                 {
@@ -41,7 +41,7 @@ class Introduccion:
                     "color": (255, 200, 60),
                     "lineas": [
                         "Si una sierra o trampa corta el cable,",
-                        "vuelve a un rack o checkpoint (C) para recuperarlo.",
+                        "vuelve a un rack o checkpoint  para recuperarlo.",
                         "Sin cable, no puedes llegar al siguiente rack.",
                     ],
                 },
@@ -49,7 +49,7 @@ class Introduccion:
                     "encabezado": "POWER-UP",
                     "color": (255, 165, 0),
                     "lineas": [
-                        "La chaqueta cohete (J) te da un impulso vertical.",
+                        "La chaqueta cohete  te da un impulso vertical.",
                         "Manten ESPACIO para volar mientras dure el efecto.",
                         "Usala para alcanzar plataformas altas.",
                     ],
@@ -61,12 +61,13 @@ class Introduccion:
             "subtitulo": "Evitalos o perderas una vida.",
             "secciones": [
                 {
-                    "encabezado": "SIERRAS",
+                    "encabezado": "ENEMIGOS Y TRAMPAS",
                     "color": (255, 80, 80),
                     "lineas": [
                         "Sierras moviles y sierras que caen del techo.",
                         "Ambas cortan cables danan al jugador.",
                         "Cronometra bien tus saltos para superarlas.",
+                        "Evita los drones que pueden dispararte"
                     ],
                 },
                 {

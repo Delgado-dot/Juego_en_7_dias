@@ -40,6 +40,7 @@ class Historia:
                 "imagen": "slide_02.png",
                 "textos": [
                     "Su nombre es Jacked Man.",
+                    "Jacked Man es un ser que vive en el internet, viaja de casa en casa sin\n que lo notes a través de la red.",
                     "Protector del internet y héroe anónimo de las redes, Jacked Man combate\nhackers, corrige errores, protege las conexiones y se asegura de que los datos\nlleguen a donde deben llegar. Gracias a él, millones de personas pueden navegar\npor internet ignorando completamente su existencia.",
                     "Porque mientras el mundo continúa con su vida cotidiana, Jacked Man\ntrabaja en silencio."
                 ]
@@ -47,43 +48,66 @@ class Historia:
             {
                 "imagen": "slide_03.png",
                 "textos": [
-                    "Un día, la red de una importante empresa colapsó por completo.",
-                    "Nadie podía navegar por internet.",
-                    "Los archivos dejaron de compartirse.",
-                    "Los sistemas dejaron de responder.",
-                    "Y la comunicación con una sucursal remota se perdió por completo.",
-                    "El caos no tardó en apoderarse de la oficina."
+                    "Un día, el internet se fué.",
+                    "Pero esta vez, fué diferente...",
                 ]
             },
             {
                 "imagen": "slide_04.png",
                 "textos": [
-                    "El jefe llamó de inmediato al proveedor de internet, exigiendo una\nsolución. Le aseguraron que el problema sería atendido lo antes posible.",
-                    "Pero mientras los humanos buscaban respuestas..."
+                    "El mundo entero se enfrentó a una catástrofe global, pues en un instante\n todos perdieron la conección a internet en su totalidad...",
+                    "Hospitales, universidades, empresas, incluso los propios\n servidores de internet",
+                    "En un instante... todos estaban incomunicados."
                 ]
             },
             {
                 "imagen": "slide_05.png",
                 "textos": [
-                    "En algún lugar, más allá de las pantallas...",
-                    "Más allá de los routers y los cables...",
-                    "Una alarma comenzó a sonar.",
-                    "Una conexión había caído."
+                    "En cuestión de minutos...",
+                    "El caos empezó a apoderarse de las calles al rededor del planeta",
                 ]
             },
             {
                 "imagen": "slide_06.png",
                 "textos": [
-                    "Sin perder un segundo, Jacked Man se dirigió al origen del problema: el rack\nprincipal de la empresa."
+                    "Las personas llamaban histéricas a todos los proveedores de \ninternet en busca de una solución.",
+                    "El servicio técnico intentaba tranquilizar a cada persona, pero era inútil,\n nadie tenía idea de qué fue lo que sucedió",
+                    "Pero mientras los humanos buscaban respuestas...",
                 ]
             },
             {
                 "imagen": "slide_07.png",
                 "textos": [
-                    "Adéntrate en el complejo mundo de las redes a través de los ojos\nde Jacked Man. Explora la loca infraestructura digital del rack, restablece la\nconectividad y salva el día.",
-                    "¿Podrá Jacked Man recablear el rack y restaurar la conexión a internet?"
+                    "En algún lugar, más allá de las pantallas...",
+                    "Más allá de los routers y los cables...",
+                    "Mientras Jacked Man se encontraba realizando su patrullaje normal...",
+                    "Una alerta comenzó a sonar.",
+                    "La conexión mundial había caído."
                 ]
-            }
+            },
+            {
+                "imagen": "slide_08.png",
+                "textos": [
+                    "De pronto Jacked Man fué arrastrado fuera de la red",
+                    "Directo hacia la ciudad digital, un lugar caótico, al que va a parar la forma\n etérea de cada usuario que se adentra en la internet",
+                    "Justo ahora, éste era el único lugar a donde Jacked Man podía ir a parar ahora\n que la red se encontraba colapsada.",
+                    "De pronto Jacked Man se encontraba barado en una ciudad digital ahora desértica, \nal no contar con usuarios que recorran sus calles"
+                ]
+            },
+            {
+                "imagen": "slide_09.png",
+                "textos": [
+                    "Afortunadamente, justo en el corazón de la ciudad digital, se encontraba el rack\ncentral mundial, una enorme estructura que se alza como un rascacielos.",
+                    "A trabés de él, fluye el internet, si algo sucede ahí, entonces todo el internet\n se detiene y lo que se encuentre en la red, va a parar a la ciudad,\n era esa la razón por la que él se encontraba en ese lugar",
+                    "Si algo salió muy mal, entonces ese debía ser el origen del problema",
+                    "A compaña a Jacked Man en su misión de restaurar la conexión a internet",
+                    "Recablea el rack, vence a los enemigos que tomaron el control y supera las trampas\n que pusieron por todo el lugar",
+                    "Descubre que fué lo que sucedió ahí dentro y salva al mundo de la catástrofe que se avecina",
+                    "El tiempo es extremadamente limitado"
+                    "Si fallas... se acabó, Jacked Man es la última esperanza de la humanidad",
+                    "¿Podrá Jacked Man restaurar la conexión a internet antes de que la sociedad colpse?" 
+                ]
+            }            
         ]
 
         self.imagenes = []

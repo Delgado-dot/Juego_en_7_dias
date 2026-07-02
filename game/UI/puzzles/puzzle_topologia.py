@@ -18,9 +18,9 @@ TOPOLOGIAS = ["ESTRELLA", "ANILLO", "ARBOL", "MESH"]
 
 
 class PuzzleTopologia(BasePuzzle):
-    TITULO = "TOPOLOGIA"
+    TITULO = "TOPOLOGIA DE RED"
     HINT = "Click en 2 nodos para crear enlace  |  Click derecho para eliminar  |  VALIDAR"
-    HIT_NODO = 15
+    HIT_NODO = 28
 
     def _tiene_boton_validar(self):
         return True
@@ -46,22 +46,20 @@ class PuzzleTopologia(BasePuzzle):
         self.topologia = topologia
         self.n = n_nodos
 
-        ref_w = 220
-        ref_h = 180
-        pad_nodos = 60
-
-        nodo_area = pygame.Rect(
-            self.area.x + pad_nodos,
-            self.area.y + pad_nodos,
-            self.area.width - ref_w - pad_nodos * 2,
-            self.area.height - pad_nodos * 2
-        )
-
-        cols = math.ceil(math.sqrt(n_nodos * nodo_area.width / nodo_area.height))
+        # Generar posiciones de nodos en grilla 2D
+        # Nodos en posiciones fijas en grilla (para que sea más fácil visualizar)
+        cols = math.ceil(math.sqrt(n_nodos))
         filas = math.ceil(n_nodos / cols)
 
-        cell_w = nodo_area.width / cols
-        cell_h = nodo_area.height / filas
+        # Área de nodos (dejamos espacio para la referencia en la esquina sup-der)
+        ref_w = 220
+        ref_h = 200
+        nodo_area = pygame.Rect(
+            self.area.x + 20,
+            self.area.y + 20,
+            self.area.width - ref_w - 50,
+            self.area.height - 40
+        )
 
         self.nodos = []
         idx = 0
@@ -69,8 +67,8 @@ class PuzzleTopologia(BasePuzzle):
             for col in range(cols):
                 if idx >= n_nodos:
                     break
-                cx = nodo_area.x + (col + 0.5) * cell_w
-                cy = nodo_area.y + (fila + 0.5) * cell_h
+                cx = nodo_area.x + (col + 0.5) * (nodo_area.width // cols)
+                cy = nodo_area.y + (fila + 0.5) * (nodo_area.height // filas)
                 self.nodos.append({
                     "id": idx,
                     "x": int(cx),
@@ -79,9 +77,10 @@ class PuzzleTopologia(BasePuzzle):
                 })
                 idx += 1
 
-        self.aristas = []
+        self.aristas = []  # lista de tuplas (nodo_a, nodo_b)
         self.nodo_seleccionado = None
 
+        # Rectángulo para la referencia visual
         self.ref_rect = pygame.Rect(
             self.area.x + self.area.width - ref_w - 20,
             self.area.y + 40,
@@ -262,34 +261,23 @@ class PuzzleTopologia(BasePuzzle):
         pass
 
     def _dibujar_subclase(self):
-        # 1) Aristas permanentes
+        # 1) Aristas (debajo de los nodos)
         for (a, b) in self.aristas:
             ax, ay = self.nodos[a]["x"], self.nodos[a]["y"]
             bx, by = self.nodos[b]["x"], self.nodos[b]["y"]
 
             halo = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-            pygame.draw.line(halo, (0, 220, 255, 90), (ax, ay), (bx, by), 10)
+            pygame.draw.line(halo, (0, 220, 255, 90), (ax, ay), (bx, by), 12)
             self.pantalla.blit(halo, (0, 0))
 
-            pygame.draw.line(self.pantalla, (50, 80, 120), (ax, ay), (bx, by), 5)
-            pygame.draw.line(self.pantalla, (0, 200, 255), (ax, ay), (bx, by), 2)
-            pygame.draw.line(self.pantalla, (180, 240, 255), (ax, ay), (bx, by), 1)
+            pygame.draw.line(self.pantalla, (50, 80, 120), (ax, ay), (bx, by), 6)
+            pygame.draw.line(self.pantalla, (0, 200, 255), (ax, ay), (bx, by), 3)
 
-        # 2) Línea temporal (nodo seleccionado → cursor)
-        if self.nodo_seleccionado is not None:
-            sx, sy = self.nodos[self.nodo_seleccionado]["x"], self.nodos[self.nodo_seleccionado]["y"]
-            mx, my = pygame.mouse.get_pos()
-            halo = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-            pygame.draw.line(halo, (0, 220, 255, 140), (sx, sy), (mx, my), 8)
-            self.pantalla.blit(halo, (0, 0))
-            pygame.draw.line(self.pantalla, (80, 180, 220), (sx, sy), (mx, my), 3)
-            pygame.draw.line(self.pantalla, (180, 240, 255), (sx, sy), (mx, my), 1)
-
-        # 3) Nodos
+        # 2) Nodos
         for n in self.nodos:
             self._dibujar_nodo(n)
 
-        # 4) Referencia
+        # 3) Referencia (esquina superior derecha del área)
         self._dibujar_referencia()
 
     def _dibujar_nodo(self, n):
@@ -297,23 +285,25 @@ class PuzzleTopologia(BasePuzzle):
         radio = self.HIT_NODO
         seleccionado = (self.nodo_seleccionado == n["id"])
 
+        # Halo si está seleccionado
         if seleccionado:
             ahora = pygame.time.get_ticks()
-            pulso = (math.sin(ahora * 0.01) + 1) / 2
-            halo = pygame.Surface((radio * 6, radio * 6), pygame.SRCALPHA)
+            pulso = (math.sin(ahora * 0.008) + 1) / 2
+            halo = pygame.Surface((radio * 4, radio * 4), pygame.SRCALPHA)
             pygame.draw.circle(
-                halo, (0, 220, 255, 100 + int(pulso * 100)),
-                (radio * 3, radio * 3), radio + 6 + int(pulso * 4)
+                halo, (0, 220, 255, 120 + int(pulso * 80)),
+                (radio * 2, radio * 2), radio + 8 + int(pulso * 4)
             )
-            self.pantalla.blit(halo, (x - radio * 3, y - radio * 3))
+            self.pantalla.blit(halo, (x - radio * 2, y - radio * 2))
 
         color_borde = (255, 255, 255)
-        color_relleno = (40, 60, 90) if not seleccionado else (30, 80, 120)
+        color_relleno = (40, 60, 90)
 
         surf = pygame.Surface((radio * 2 + 4, radio * 2 + 4), pygame.SRCALPHA)
         pygame.draw.circle(surf, color_relleno, (radio + 2, radio + 2), radio)
-        pygame.draw.circle(surf, color_borde, (radio + 2, radio + 2), radio, 2)
+        pygame.draw.circle(surf, color_borde, (radio + 2, radio + 2), radio, 3)
 
+        # Número del nodo
         num = self.fuente_etiqueta.render(str(n["id"] + 1), True, (240, 240, 250))
         surf.blit(
             num,
