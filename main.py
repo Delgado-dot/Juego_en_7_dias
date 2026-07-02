@@ -96,8 +96,9 @@ todas_colisiones = []
 
 
 def crear_nivel(idx):
-    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones, sierras_cae, enemigos, proyectiles_enemigos
+    global nivel, trampas, tiempo_restante, nivel_completado, punto_cable_actual, todas_colisiones, sierras_cae, enemigos, proyectiles_enemigos, checkpoints_activados
     nivel = Level(ANCHO, ALTO, idx)
+    checkpoints_activados = set()
     trampas = []
     for pos in nivel.pos_trampas:
         margen = int(ANCHO * 0.08)
@@ -315,10 +316,16 @@ def dibujar_nivel(cam_y):
 
     for cp in nivel.checkpoints:
         cx, cy = cp[0], cp[1] - cam_y
-        if sprite_rack_med:
-            pantalla.blit(sprite_rack_med, (cx - 30, cy - 30))
+        if cp in checkpoints_activados:
+            if sprite_rack_med:
+                pantalla.blit(sprite_rack_med, (cx - 30, cy - 30))
+            else:
+                pygame.draw.circle(pantalla, (0, 200, 255), (cx, cy), 10)
         else:
-            pygame.draw.circle(pantalla, (0, 200, 255), (cx, cy), 10)
+            if sprite_rack_apagado:
+                pantalla.blit(sprite_rack_apagado, (cx - 30, cy - 30))
+            else:
+                pygame.draw.circle(pantalla, (100, 100, 100), (cx, cy), 10)
         if nivel.numero == 2 or 3:
             texto_cp = fuente_peq.render("CHECKPOINT", True, (255, 255, 255))
             texto_rect = texto_cp.get_rect(center=(cx, cy - 45))
@@ -441,6 +448,7 @@ game_over = False
 victoria_final = False
 tiempo_sin_daño = 0
 punto_cable_actual = None
+checkpoints_activados = set()
 
 crear_nivel(0)
 
@@ -694,6 +702,7 @@ while True:
                         reproducir_sonido_daño()
                         anim_muerte_activa = True
                         frame_muerte = 0
+                        ultimo_frame_muerte = ahora
                         jugador.imagen = frames_muerte[0]
                         accion_muerte = ejecutar_accion_muerte
 
@@ -704,7 +713,18 @@ while True:
 
             for cp in nivel.checkpoints:
                 if jugador.distancia(cp) < 30:
-                    punto_cable_actual = cp
+                    if cp in checkpoints_activados:
+                        punto_cable_actual = cp
+                    else:
+                        puzzle = PuzzleDispatcher(pantalla, ANCHO, ALTO, fuente_peq, nivel_idx)
+                        resultado_puzzle = puzzle.ejecutar()
+                        if resultado_puzzle == "resuelto":
+                            checkpoints_activados.add(cp)
+                            punto_cable_actual = cp
+                        elif resultado_puzzle == "salir":
+                            pygame.quit()
+                            sys.exit()
+                        ultimo_frame = pygame.time.get_ticks()
 
             if nivel.pos_chaqueta:
                 dist_chaq = jugador.distancia(nivel.pos_chaqueta)
@@ -745,6 +765,7 @@ while True:
                         reproducir_sonido_daño()
                         anim_muerte_activa = True
                         frame_muerte = 0
+                        ultimo_frame_muerte = ahora
                         jugador.imagen = frames_muerte[0]
                         accion_muerte = ejecutar_accion_muerte
             for e in enemigos:
@@ -753,6 +774,7 @@ while True:
                         reproducir_sonido_daño()
                         anim_muerte_activa = True
                         frame_muerte = 0
+                        ultimo_frame_muerte = ahora
                         jugador.imagen = frames_muerte[0]
                         accion_muerte = ejecutar_accion_muerte
 
