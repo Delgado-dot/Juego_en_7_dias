@@ -143,7 +143,7 @@ def crear_nivel(idx):
 
 
 def reiniciar_nivel():
-    global game_over, tiempo_sin_daño, tiempo_restante, nivel_completado, punto_cable_actual
+    global game_over, tiempo_sin_daño, tiempo_restante, nivel_completado, punto_cable_actual, anim_muerte_activa, accion_muerte
     crear_nivel(nivel_idx)
     jugador.vidas = jugador.vidas_max
     jugador.puntaje = 0
@@ -166,11 +166,22 @@ def reiniciar_nivel():
     nivel_completado = False
     punto_cable_actual = nivel.punto_a
     nivel.pos_chaqueta = nivel.pos_chaqueta_original
+    anim_muerte_activa = False
+    accion_muerte = None
     for pf in nivel.plataformas_fantasma:
         pf.activada = False
         pf.desaparecida = False
         pf.alpha = 255
         pf.tiempo_inicio = 0
+
+
+def ejecutar_accion_muerte():
+    global game_over, tiempo_sin_daño
+    if not jugador.perder_vida():
+        game_over = True
+    else:
+        jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
+        tiempo_sin_daño = pygame.time.get_ticks() + DURACION_INVENCIBLE
 
 
 def reiniciar_juego():
@@ -308,6 +319,10 @@ def dibujar_nivel(cam_y):
             pantalla.blit(sprite_rack_med, (cx - 30, cy - 30))
         else:
             pygame.draw.circle(pantalla, (0, 200, 255), (cx, cy), 10)
+        if nivel.numero == 2 or 3:
+            texto_cp = fuente_peq.render("CHECKPOINT", True, (255, 255, 255))
+            texto_rect = texto_cp.get_rect(center=(cx, cy - 45))
+            pantalla.blit(texto_cp, texto_rect)
 
     if nivel.pos_chaqueta:
         jx, jy = nivel.pos_chaqueta[0], nivel.pos_chaqueta[1] - cam_y
@@ -472,11 +487,28 @@ for fila in range(5):
         frames_jump.append(frame)
         contador += 1
 
+sprite_sheet_muerte = pygame.image.load("assets/sprites/Jugador/muerte.png").convert_alpha()
+frames_muerte = []
+_muerte_cols = 6
+_muerte_rows = 4
+_muerte_fw = sprite_sheet_muerte.get_width() // _muerte_cols
+_muerte_fh = sprite_sheet_muerte.get_height() // _muerte_rows
+for _fila in range(_muerte_rows):
+    for _col in range(_muerte_cols):
+        _fm = sprite_sheet_muerte.subsurface(pygame.Rect(_col * _muerte_fw, _fila * _muerte_fh, _muerte_fw, _muerte_fh))
+        _fm = pygame.transform.scale(_fm, (tam_jugador, tam_jugador))
+        frames_muerte.append(_fm)
+
 frame_idle = 0
 frame_run = 0
 frame_jump = 0
+frame_muerte = 0
+anim_muerte_activa = False
+accion_muerte = None
 ultimo_frame = pygame.time.get_ticks()
 velocidad_animacion = 80
+velocidad_anim_muerte = 35
+ultimo_frame_muerte = pygame.time.get_ticks()
 jugador.imagen = frames[0]
 hud = HUD()
 
@@ -553,22 +585,34 @@ while True:
 
         if ahora - ultimo_frame > velocidad_animacion:
             ultimo_frame = ahora
-            if not jugador.en_suelo:
-                if frame_jump < len(frames_jump) - 1:
-                    frame_jump += 1
-                jugador.imagen = frames_jump[frame_jump]
-            elif jugador.vel_x != 0:
-                frame_jump = 0
-                frame_run += 1
-                if frame_run >= len(frames_run):
-                    frame_run = 0
-                jugador.imagen = frames_run[frame_run]
+            if not anim_muerte_activa:
+                if not jugador.en_suelo:
+                    if frame_jump < len(frames_jump) - 1:
+                        frame_jump += 1
+                    jugador.imagen = frames_jump[frame_jump]
+                elif jugador.vel_x != 0:
+                    frame_jump = 0
+                    frame_run += 1
+                    if frame_run >= len(frames_run):
+                        frame_run = 0
+                    jugador.imagen = frames_run[frame_run]
+                else:
+                    frame_jump = 0
+                    frame_idle += 1
+                    if frame_idle >= len(frames):
+                        frame_idle = 0
+                    jugador.imagen = frames[frame_idle]
+
+        if anim_muerte_activa and ahora - ultimo_frame_muerte > velocidad_anim_muerte:
+            ultimo_frame_muerte = ahora
+            frame_muerte += 1
+            if frame_muerte < len(frames_muerte):
+                jugador.imagen = frames_muerte[frame_muerte]
             else:
-                frame_jump = 0
-                frame_idle += 1
-                if frame_idle >= len(frames):
-                    frame_idle = 0
-                jugador.imagen = frames[frame_idle]
+                anim_muerte_activa = False
+                if accion_muerte:
+                    accion_muerte()
+                    accion_muerte = None
 
         if not game_over and not victoria_final:
             dt = reloj.get_time()
@@ -577,6 +621,7 @@ while True:
                 tiempo_restante = 0
                 game_over = True
 
+        if not game_over and not victoria_final and not anim_muerte_activa:
             teclas = pygame.key.get_pressed()
             jugador.activar_cohete(teclas[pygame.K_SPACE])
             if teclas[pygame.K_SPACE]:
@@ -598,12 +643,13 @@ while True:
             jugador.actualizar(colisiones, ANCHO, nivel.alto_total)
 
             if jugador.forma.top > nivel.alto_total + 200:
-                reproducir_sonido_daño()
-                if not jugador.perder_vida():
-                    game_over = True
-                else:
-                    jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
-                    tiempo_sin_daño = pygame.time.get_ticks() + DURACION_INVENCIBLE
+                if not anim_muerte_activa:
+                    reproducir_sonido_daño()
+                    anim_muerte_activa = True
+                    frame_muerte = 0
+                    ultimo_frame_muerte = ahora
+                    jugador.imagen = frames_muerte[0]
+                    accion_muerte = ejecutar_accion_muerte
 
             if jugador.modo_cohete and jugador.chaqueta_cohete:
                 if pygame.time.get_ticks() % 2 == 0:
@@ -643,17 +689,13 @@ while True:
 
             for p in proyectiles_enemigos:
                 if p.forma.colliderect(jugador.forma):
-                    if ahora > tiempo_sin_daño:
+                    if ahora > tiempo_sin_daño and not anim_muerte_activa:
                         p.activo = False
                         reproducir_sonido_daño()
-                        if not jugador.perder_vida():
-                            game_over = True
-                        else:
-                            jugador.reiniciar_pos(
-                                punto_cable_actual[0],
-                                punto_cable_actual[1] - tam_jugador
-                            )
-                            tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+                        anim_muerte_activa = True
+                        frame_muerte = 0
+                        jugador.imagen = frames_muerte[0]
+                        accion_muerte = ejecutar_accion_muerte
 
             proyectiles_enemigos = [p for p in proyectiles_enemigos if p.activo]
 
@@ -687,38 +729,32 @@ while True:
             for t in trampas:
                 dist = math.hypot(jugador.forma.centerx - t.x, jugador.forma.centery - t.y)
                 radio_colision = t.tamano * 0.75
-                if dist < radio_colision and ahora > tiempo_sin_daño:
+                if dist < radio_colision and ahora > tiempo_sin_daño and not anim_muerte_activa:
                     reproducir_sonido_daño()
-                    if not jugador.perder_vida():
-                        game_over = True
-                    else:
-                        jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
-                        tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+                    anim_muerte_activa = True
+                    frame_muerte = 0
+                    ultimo_frame_muerte = ahora
+                    jugador.imagen = frames_muerte[0]
+                    accion_muerte = ejecutar_accion_muerte
 
             for sc in sierras_cae:
                 if sc.activa:
                     dist = math.hypot(jugador.forma.centerx - sc.x, jugador.forma.centery - sc.y)
                     radio_colision = sc.tamano * 0.75
-                    if dist < radio_colision and ahora > tiempo_sin_daño:
+                    if dist < radio_colision and ahora > tiempo_sin_daño and not anim_muerte_activa:
                         reproducir_sonido_daño()
-                        if not jugador.perder_vida():
-                            game_over = True
-                        else:
-                            jugador.reiniciar_pos(punto_cable_actual[0], punto_cable_actual[1] - tam_jugador)
-                            tiempo_sin_daño = ahora + DURACION_INVENCIBLE
+                        anim_muerte_activa = True
+                        frame_muerte = 0
+                        jugador.imagen = frames_muerte[0]
+                        accion_muerte = ejecutar_accion_muerte
             for e in enemigos:
                 if e.forma.colliderect(jugador.forma):
-                    if ahora > tiempo_sin_daño:
+                    if ahora > tiempo_sin_daño and not anim_muerte_activa:
                         reproducir_sonido_daño()
-                        if not jugador.perder_vida():
-                            game_over = True
-                        else:
-                            jugador.reiniciar_pos(
-                            punto_cable_actual[0],
-                            punto_cable_actual[1] - tam_jugador
-                            )
-                            tiempo_sin_daño = (
-                            ahora + DURACION_INVENCIBLE)
+                        anim_muerte_activa = True
+                        frame_muerte = 0
+                        jugador.imagen = frames_muerte[0]
+                        accion_muerte = ejecutar_accion_muerte
 
             if not nivel_completado and jugador.llego_meta(nivel.punto_b):
                 nivel_completado = True
@@ -727,18 +763,8 @@ while True:
                 if siguiente >= len(NIVELES):
                     victoria_final = True
                 else:
-                    try:
-                        pygame.mixer.music.pause()
-                    except:
-                        pass
-
                     puzzle = PuzzleDispatcher(pantalla, ANCHO, ALTO, fuente_peq, nivel_idx)
                     resultado_puzzle = puzzle.ejecutar()
-
-                    try:
-                        pygame.mixer.music.unpause()
-                    except:
-                        pass
 
                     if resultado_puzzle == "resuelto":
                         portal_transicion(True)

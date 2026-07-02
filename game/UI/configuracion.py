@@ -211,7 +211,7 @@ class PanelConfiguracion:
             color_borde=(180, 80, 80), color_texto=(255, 150, 150),
         )
         contenido_y_guardar = self._dibujar_boton(
-            pantalla, contenido_x + ancho_boton + gap, contenido_y - 40,
+            pantalla, contenido_x + ancho_boton + gap, contenido_y - 46,
             ancho_boton, "GUARDAR", accion="guardar",
             color_borde=(0, 220, 130), color_texto=(0, 255, 160),
         )
