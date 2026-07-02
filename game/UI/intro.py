@@ -225,7 +225,7 @@ class Introduccion:
                     linea,
                     self.fuente_linea,
                     (230, 230, 230),
-                    (encab_x + 22, contenido_y + j * 36),
+                    (encab_x + 12, contenido_y + j * 35),
                     int(230 * alpha_mult),
                 )
 

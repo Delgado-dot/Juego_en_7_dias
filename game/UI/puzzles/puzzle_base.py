@@ -66,8 +66,8 @@ class BasePuzzle:
 
         # Fuentes
         try:
-            self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 40)
-            self.fuente_etiqueta = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 16)
+            self.fuente_titulo = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 25)
+            self.fuente_etiqueta = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 11)
             self.fuente_grande = pygame.font.Font("assets/fonts/PressStart2P-Regular.ttf", 22)
         except Exception:
             self.fuente_titulo = pygame.font.SysFont("Arial", 40, bold=True)

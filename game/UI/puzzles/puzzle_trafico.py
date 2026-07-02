@@ -37,11 +37,11 @@ class PuzzleTrafico(BasePuzzle):
 
     def _construir(self):
         if self.dificultad <= 2:
-            n_paquetes = 6
+            n_paquetes = 4
         elif self.dificultad <= 4:
-            n_paquetes = 8
+            n_paquetes = 6
         else:
-            n_paquetes = 10
+            n_paquetes = 7
 
         rng = random.Random(pygame.time.get_ticks())
 
