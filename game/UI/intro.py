@@ -186,7 +186,7 @@ class Introduccion:
         panel_w = 720
         panel_h = 240
         panel_total_h = panel_h * len(datos["secciones"]) + 30 * (len(datos["secciones"]) - 1)
-        panel_y_inicio = (self.alto - panel_total_h) // 2 + 30
+        panel_y_inicio = (self.alto - panel_total_h) // 2 + 52
 
         for i, seccion in enumerate(datos["secciones"]):
             panel_y = panel_y_inicio + i * (panel_h + 30)

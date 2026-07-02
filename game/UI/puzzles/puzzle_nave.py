@@ -61,15 +61,15 @@ class PuzzleNave(BasePuzzle):
             self.area.height - hud_h - 10,
         )
 
-        torre_w = 48
+        torre_w = 45
         torre_h = 64
         self.origen_rect = pygame.Rect(
-            self.play_rect.x + 12,
+            self.play_rect.x + 50,
             self.play_rect.centery - torre_h // 2,
             torre_w, torre_h,
         )
         self.destino_rect = pygame.Rect(
-            self.play_rect.right - torre_w - 12,
+            self.play_rect.right - torre_w - 50,
             self.play_rect.centery - torre_h // 2,
             torre_w, torre_h,
         )
@@ -192,7 +192,7 @@ class PuzzleNave(BasePuzzle):
                          and self.play_rect.x - 40 < p["x"] < self.play_rect.right + 40]
         self.virus = [v for v in self.virus if v["estado"] == "vivo"]
         self.balas = [b for b in self.balas
-                      if (self.play_rect.x - 40 < b["x"] < self.play_rect.right + 40 and
+                      if (self.play_rect.x - 40 < b["x"] < self.destino_rect.x and
                           self.play_rect.y - 40 < b["y"] < self.play_rect.bottom + 40)]
 
         # Colisiones
